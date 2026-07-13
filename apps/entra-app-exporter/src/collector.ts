@@ -138,10 +138,10 @@ export class EntraAppCollector {
       const keyId = cred.keyId ?? "unknown";
 
       if (!cred.endDateTime) {
-        // No expiry set - treat as never expiring
+        // No expiry set — use sentinel value of 99999 (Prometheus cannot represent Infinity)
         appSecretDaysRemaining.set(
           { app_name: appName, app_id: appId, secret_name: secretName, key_id: keyId },
-          Infinity
+          99999
         );
         appSecretExpiryInfo.set(
           {
@@ -192,9 +192,10 @@ export class EntraAppCollector {
       const certType = cred.type ?? "unknown";
 
       if (!cred.endDateTime) {
+        // No expiry set — use sentinel value of 99999 (Prometheus cannot represent Infinity)
         appCertDaysRemaining.set(
           { app_name: appName, app_id: appId, cert_name: certName, key_id: keyId, cert_type: certType },
-          Infinity
+          99999
         );
         appCertExpiryInfo.set(
           {

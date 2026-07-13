@@ -63,7 +63,8 @@ async function main(): Promise<void> {
       res.end(await register.metrics());
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      res.status(500).end(message);
+      console.error("Error rendering metrics:", message);
+      res.status(500).end("Internal server error");
     }
   });
 
