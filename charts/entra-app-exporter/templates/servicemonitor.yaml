@@ -25,5 +25,5 @@ spec:
       honorLabels: {{ .Values.serviceMonitor.honorLabels }}
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ default .Release.Namespace .Values.serviceMonitor.targetNamespace }}
 {{- end }}

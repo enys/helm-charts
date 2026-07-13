@@ -11,6 +11,9 @@ import {
   lastScrapeTime,
 } from "./metrics";
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const NO_EXPIRY_SENTINEL = 99999;
+
 export interface CollectorConfig {
   tenantId: string;
   clientId?: string;
@@ -138,10 +141,10 @@ export class EntraAppCollector {
       const keyId = cred.keyId ?? "unknown";
 
       if (!cred.endDateTime) {
-        // No expiry set — use sentinel value of 99999 (Prometheus cannot represent Infinity)
+        // No expiry set — use sentinel value (Prometheus cannot represent Infinity)
         appSecretDaysRemaining.set(
           { app_name: appName, app_id: appId, secret_name: secretName, key_id: keyId },
-          99999
+          NO_EXPIRY_SENTINEL
         );
         appSecretExpiryInfo.set(
           {
@@ -160,7 +163,7 @@ export class EntraAppCollector {
       const expiryDate = new Date(cred.endDateTime);
       const now = new Date();
       const daysRemaining = Math.floor(
-        (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        (expiryDate.getTime() - now.getTime()) / MS_PER_DAY
       );
 
       appSecretDaysRemaining.set(
@@ -192,10 +195,10 @@ export class EntraAppCollector {
       const certType = cred.type ?? "unknown";
 
       if (!cred.endDateTime) {
-        // No expiry set — use sentinel value of 99999 (Prometheus cannot represent Infinity)
+        // No expiry set — use sentinel value (Prometheus cannot represent Infinity)
         appCertDaysRemaining.set(
           { app_name: appName, app_id: appId, cert_name: certName, key_id: keyId, cert_type: certType },
-          99999
+          NO_EXPIRY_SENTINEL
         );
         appCertExpiryInfo.set(
           {
@@ -215,7 +218,7 @@ export class EntraAppCollector {
       const expiryDate = new Date(cred.endDateTime);
       const now = new Date();
       const daysRemaining = Math.floor(
-        (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        (expiryDate.getTime() - now.getTime()) / MS_PER_DAY
       );
 
       appCertDaysRemaining.set(

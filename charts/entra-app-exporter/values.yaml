@@ -156,6 +156,9 @@ serviceMonitor:
   enabled: false
   ## @param serviceMonitor.namespace Namespace in which the ServiceMonitor is created. Defaults to the release namespace.
   namespace: ""
+  ## @param serviceMonitor.targetNamespace Namespace where the Service to be scraped lives. Defaults to the release namespace.
+  ## Set this when the ServiceMonitor is created in a different namespace than the release (e.g., a monitoring namespace).
+  targetNamespace: ""
   ## @param serviceMonitor.interval Prometheus scrape interval
   interval: "60s"
   ## @param serviceMonitor.scrapeTimeout Prometheus scrape timeout
