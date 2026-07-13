@@ -58,13 +58,15 @@ spec:
                 secretKeyRef:
                   name: {{ include "entra-app-exporter.secretName" . }}
                   key: AZURE_CLIENT_ID
+                  {{ if .Values.azure.useManagedIdentity }}
+                  optional: true
+                  {{ end }}
             {{- if not .Values.azure.useManagedIdentity }}
             - name: AZURE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "entra-app-exporter.secretName" . }}
                   key: AZURE_CLIENT_SECRET
-                  optional: true
             {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
