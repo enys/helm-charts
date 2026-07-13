@@ -1,0 +1,15 @@
+# CI test values for the entra-app-exporter chart
+
+azure:
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  clientId: "00000000-0000-0000-0000-000000000001"
+  clientSecret: "ci-test-secret"
+  useManagedIdentity: false
+
+replicaCount: 1
+
+serviceMonitor:
+  enabled: false
+
+autoscaling:
+  enabled: false

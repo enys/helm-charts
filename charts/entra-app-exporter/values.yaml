@@ -1,0 +1,174 @@
+## Default values for entra-app-exporter.
+
+## @section Global parameters
+
+## @param replicaCount Number of replicas for the deployment
+replicaCount: 1
+
+## @section Image parameters
+
+image:
+  ## @param image.repository Container image repository
+  repository: ghcr.io/enys/entra-app-exporter
+  ## @param image.pullPolicy Image pull policy
+  pullPolicy: IfNotPresent
+  ## @param image.tag Overrides the image tag. Defaults to the chart appVersion.
+  tag: ""
+
+## @param imagePullSecrets List of image pull secrets
+imagePullSecrets: []
+## @param nameOverride Override the name of the chart
+nameOverride: ""
+## @param fullnameOverride Override the full name of the release
+fullnameOverride: ""
+
+## @section Service account parameters
+
+serviceAccount:
+  ## @param serviceAccount.create Specifies whether a service account should be created
+  create: true
+  ## @param serviceAccount.automount Automatically mount a ServiceAccount's API credentials
+  automount: true
+  ## @param serviceAccount.annotations Annotations to add to the service account
+  annotations: {}
+  ## @param serviceAccount.name The name of the service account. Generated using the fullname template if not set.
+  name: ""
+
+## @param podAnnotations Extra annotations to add to pods
+podAnnotations: {}
+## @param podLabels Extra labels to add to pods
+podLabels: {}
+
+## @section Security context parameters
+
+## @param podSecurityContext Security context for pods
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+## @param securityContext Security context for the container
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+## @section Service parameters
+
+service:
+  ## @param service.type Kubernetes service type
+  type: ClusterIP
+  ## @param service.port Service port for the metrics endpoint
+  port: 9090
+  ## @param service.annotations Annotations to add to the service
+  annotations: {}
+
+## @section Exporter configuration
+
+exporter:
+  ## @param exporter.port Port on which the exporter listens for metrics
+  port: 9090
+  ## @param exporter.scrapeIntervalSeconds How often (in seconds) to scrape Azure Entra for application data
+  scrapeIntervalSeconds: 300
+
+## @section Azure authentication
+
+azure:
+  ## @param azure.tenantId Azure tenant ID (required)
+  tenantId: ""
+  ## @param azure.useManagedIdentity Use Azure Managed Identity for authentication instead of client credentials
+  useManagedIdentity: false
+  ## @param azure.clientId Azure AD application (client) ID. Required when useManagedIdentity is false.
+  clientId: ""
+  ## @param azure.clientSecret Azure AD client secret. Required when useManagedIdentity is false.
+  ## Use existingSecret to avoid placing secrets in values.yaml.
+  clientSecret: ""
+  ## @param azure.existingSecret Name of an existing Kubernetes secret containing Azure credentials.
+  ## The secret must have keys: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+  existingSecret: ""
+
+## @section Resource limits and requests
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+## @section Liveness and readiness probes
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+## @section Autoscaling
+
+autoscaling:
+  ## @param autoscaling.enabled Enable horizontal pod autoscaling
+  enabled: false
+  ## @param autoscaling.minReplicas Minimum number of replicas
+  minReplicas: 1
+  ## @param autoscaling.maxReplicas Maximum number of replicas
+  maxReplicas: 3
+  ## @param autoscaling.targetCPUUtilizationPercentage Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 80
+
+## @param volumes Additional volumes to add to the pod
+volumes: []
+
+## @param volumeMounts Additional volume mounts for the container
+volumeMounts: []
+
+## @param nodeSelector Node selector labels
+nodeSelector: {}
+
+## @param tolerations Tolerations for pod scheduling
+tolerations: []
+
+## @param affinity Affinity rules for pod scheduling
+affinity: {}
+
+## @section Prometheus ServiceMonitor
+
+serviceMonitor:
+  ## @param serviceMonitor.enabled Create a Prometheus ServiceMonitor resource
+  enabled: false
+  ## @param serviceMonitor.namespace Namespace in which the ServiceMonitor is created. Defaults to the release namespace.
+  namespace: ""
+  ## @param serviceMonitor.interval Prometheus scrape interval
+  interval: "60s"
+  ## @param serviceMonitor.scrapeTimeout Prometheus scrape timeout
+  scrapeTimeout: "30s"
+  ## @param serviceMonitor.labels Additional labels for the ServiceMonitor
+  labels: {}
+  ## @param serviceMonitor.annotations Additional annotations for the ServiceMonitor
+  annotations: {}
+  ## @param serviceMonitor.honorLabels Honor labels from the scraped target
+  honorLabels: false
+
+## @section Network Policy
+
+networkPolicy:
+  ## @param networkPolicy.enabled Enable a NetworkPolicy for the exporter pods
+  enabled: false
