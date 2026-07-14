@@ -16,8 +16,16 @@ function getEnvOrDefault(name: string, defaultValue: string): string {
 
 function buildConfig(): CollectorConfig {
   const tenantId = getEnvOrThrow("AZURE_TENANT_ID");
-  const useManagedIdentity = getEnvOrDefault("USE_MANAGED_IDENTITY", "false").toLowerCase() === "true";
-  const scrapeIntervalSeconds = parseInt(getEnvOrDefault("SCRAPE_INTERVAL_SECONDS", "300"), 10);
+  const useManagedIdentity =
+    getEnvOrDefault("USE_MANAGED_IDENTITY", "false").toLowerCase() === "true";
+
+  const scrapeIntervalSecondsRaw = getEnvOrDefault("SCRAPE_INTERVAL_SECONDS", "300");
+  const scrapeIntervalSeconds = Number.parseInt(scrapeIntervalSecondsRaw, 10);
+  if (!Number.isFinite(scrapeIntervalSeconds) || scrapeIntervalSeconds <= 0) {
+    throw new Error(
+      `SCRAPE_INTERVAL_SECONDS must be a positive integer (got ${scrapeIntervalSecondsRaw})`
+    );
+  }
 
   if (useManagedIdentity) {
     return {
