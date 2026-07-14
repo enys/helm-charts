@@ -49,7 +49,11 @@ function buildConfig(): CollectorConfig {
 }
 
 async function main(): Promise<void> {
-  const port = parseInt(getEnvOrDefault("PORT", "9090"), 10);
+  const portRaw = getEnvOrDefault("PORT", "9090");
+  const port = Number.parseInt(portRaw, 10);
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) {
+    throw new Error(`PORT must be an integer between 1 and 65535 (got ${portRaw})`);
+  }
 
   let config: CollectorConfig;
   try {
