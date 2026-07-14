@@ -30,10 +30,10 @@ jobs:
           persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468e0773a5f5b2ca6e67a95ccda41597746542d # v3.11.1
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Build image
-        uses: docker/build-push-action@4f58ea792c93f67584f17e0fdc2e4f8d2db8f73c # v6.18.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: apps/entra-app-exporter
           file: apps/entra-app-exporter/Dockerfile
