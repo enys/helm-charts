@@ -1,0 +1,79 @@
+name: Build image and lint chart
+
+on:
+  pull_request:
+    paths:
+      - "apps/entra-app-exporter/**"
+      - "charts/entra-app-exporter/**"
+      - ".github/workflows/build-image-and-lint-chart.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/entra-app-exporter/**"
+      - "charts/entra-app-exporter/**"
+      - ".github/workflows/build-image-and-lint-chart.yml"
+
+permissions: {}
+
+jobs:
+  build-image:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468e0773a5f5b2ca6e67a95ccda41597746542d # v3.11.1
+
+      - name: Build image
+        uses: docker/build-push-action@4f58ea792c93f67584f17e0fdc2e4f8d2db8f73c # v6.18.0
+        with:
+          context: apps/entra-app-exporter
+          file: apps/entra-app-exporter/Dockerfile
+          push: false
+          tags: entra-app-exporter:${{ github.sha }}
+
+  lint-chart:
+    name: Lint Helm chart (ct lint)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: v3.18.4
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install lint dependencies
+        run: pip install yamllint yamale
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
+        with:
+          version: v3.11.0
+
+      - name: Run ct lint
+        run: ct lint --chart-dirs charts --charts charts/entra-app-exporter
+
+      - name: Create kind cluster
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+
+      - name: Run ct install
+        run: ct install --chart-dirs charts --charts charts/entra-app-exporter
