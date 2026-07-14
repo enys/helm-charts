@@ -1,0 +1,18 @@
+1. Get the application URL by running these commands:
+{{- if .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "entra-app-exporter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME {{ .Values.service.port }}:$CONTAINER_PORT
+  echo "Metrics available at http://127.0.0.1:{{ .Values.service.port }}/metrics"
+{{- end }}
+
+2. To view Entra app exporter metrics:
+  curl http://127.0.0.1:{{ .Values.service.port }}/metrics | grep entra_app
+
+Available metrics:
+  - entra_app_secret_days_remaining         Days until client secret expires
+  - entra_app_certificate_days_remaining    Days until certificate expires
+  - entra_app_secret_expiry_info            Info gauge with status label (ok/warning/critical/expired)
+  - entra_app_certificate_expiry_info       Info gauge with status label (ok/warning/critical/expired)
+  - entra_app_info                          General app registration info
+  - entra_app_exporter_scrape_errors_total  Total scrape errors

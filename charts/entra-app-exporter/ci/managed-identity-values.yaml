@@ -1,0 +1,13 @@
+# CI test values — managed identity authentication
+
+azure:
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  clientId: "00000000-0000-0000-0000-000000000001"
+  useManagedIdentity: true
+
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000001"
+
+serviceMonitor:
+  enabled: false

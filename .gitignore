@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript build output
+apps/*/dist/
+apps/*/coverage/
+
+# Helm chart packages
+*.tgz
+charts/*/Chart.lock
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo

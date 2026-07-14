@@ -1,0 +1,37 @@
+name: Release Helm charts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "charts/**"
+      - ".github/workflows/release-charts.yml"
+
+permissions: {}
+
+jobs:
+  release-charts:
+    name: Package and release charts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@a0d2dc62c5e491af8ef6ba64a2e02bcf3fb33aa1 # v1.7.0
+        with:
+          charts_dir: charts
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
