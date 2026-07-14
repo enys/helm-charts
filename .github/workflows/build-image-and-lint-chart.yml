@@ -1,6 +1,7 @@
 name: Build image and lint chart
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "apps/entra-app-exporter/**"
