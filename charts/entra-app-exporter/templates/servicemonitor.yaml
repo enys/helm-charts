@@ -18,8 +18,9 @@ spec:
     matchLabels:
       {{- include "entra-app-exporter.selectorLabels" . | nindent 6 }}
   endpoints:
-    - port: http
-      path: /metrics
+    - port: {{ .Values.serviceMonitor.port }}
+      path: {{ .Values.serviceMonitor.path }}
+      scheme: {{ .Values.serviceMonitor.scheme }}
       interval: {{ .Values.serviceMonitor.interval }}
       scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
       honorLabels: {{ .Values.serviceMonitor.honorLabels }}

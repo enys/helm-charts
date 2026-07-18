@@ -93,7 +93,16 @@ The following table lists the configurable parameters.
 | `resources` | CPU/memory resource requests and limits | see `values.yaml` |
 | `autoscaling.enabled` | Enable HPA | `false` |
 | `serviceMonitor.enabled` | Create a Prometheus Operator ServiceMonitor | `false` |
+| `serviceMonitor.namespace` | Namespace where the ServiceMonitor is created (defaults to release namespace) | `""` |
+| `serviceMonitor.targetNamespace` | Namespace containing the exporter Service to scrape (defaults to release namespace) | `""` |
 | `serviceMonitor.interval` | ServiceMonitor scrape interval | `60s` |
+| `serviceMonitor.scrapeTimeout` | ServiceMonitor scrape timeout | `30s` |
+| `serviceMonitor.path` | Metrics path scraped by ServiceMonitor endpoint | `/metrics` |
+| `serviceMonitor.port` | Service port name scraped by ServiceMonitor endpoint | `http` |
+| `serviceMonitor.scheme` | ServiceMonitor endpoint scheme | `http` |
+| `serviceMonitor.labels` | Extra labels added to the ServiceMonitor | `{}` |
+| `serviceMonitor.annotations` | Extra annotations added to the ServiceMonitor | `{}` |
+| `serviceMonitor.honorLabels` | Preserve scraped target labels | `false` |
 | `networkPolicy.enabled` | Create a NetworkPolicy | `false` |
 | `nodeSelector` | Node selector | `{}` |
 | `tolerations` | Pod tolerations | `[]` |
@@ -110,6 +119,18 @@ The following table lists the configurable parameters.
 | `entra_app_info` | Gauge (info) | General info per app registration. Labels: `app_name`, `app_id`, `object_id` |
 | `entra_app_exporter_scrape_errors_total` | Counter | Total errors encountered during Graph API scrapes |
 | `entra_app_exporter_last_scrape_timestamp_seconds` | Gauge | Unix timestamp of last successful scrape |
+
+## Grafana Dashboard
+
+A ready-to-import Grafana dashboard is provided at:
+
+`charts/entra-app-exporter/dashboards/entra-app-exporter-overview.json`
+
+It includes:
+- app-level overview (apps monitored, expired secrets/certs, scrape freshness)
+- minimum secret/certificate lifetime per app
+- expiry status distribution (`ok`, `warning`, `critical`, `expired`, `no_expiry`)
+- scrape error trend
 
 ## Example Prometheus Alert Rules
 
