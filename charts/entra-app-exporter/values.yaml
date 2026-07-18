@@ -153,7 +153,7 @@ affinity: {}
 
 serviceMonitor:
   ## @param serviceMonitor.enabled Create a Prometheus ServiceMonitor resource
-  enabled:  true
+  enabled: true
   ## @param serviceMonitor.namespace Namespace in which the ServiceMonitor is created. Defaults to the release namespace.
   namespace: ""
   ## @param serviceMonitor.targetNamespace Namespace where the Service to be scraped lives. Defaults to the release namespace.
