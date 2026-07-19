@@ -44,3 +44,24 @@ npm install
 npm run build
 npm test
 ```
+
+### Running with Tilt
+
+```bash
+tilt up
+```
+
+Tilt deploys `charts/entra-app-exporter` as release `entra-app-exporter-tilt` and forwards `localhost:9090` to the app service.
+
+Provide required Helm values in `tilt-values.yaml` at the repository root (it is gitignored).
+
+`tilt-values.yaml` must define:
+
+```yaml
+azure:
+  tenantId: "<TENANT_ID>"
+  clientId: "<CLIENT_ID>"
+  clientSecret: "<CLIENT_SECRET>"
+```
+
+The Entra app referenced by `clientId` must have Microsoft Graph **application** permission `Application.Read.All` with admin consent granted.

@@ -153,7 +153,7 @@ affinity: {}
 
 serviceMonitor:
   ## @param serviceMonitor.enabled Create a Prometheus ServiceMonitor resource
-  enabled: false
+  enabled: true
   ## @param serviceMonitor.namespace Namespace in which the ServiceMonitor is created. Defaults to the release namespace.
   namespace: ""
   ## @param serviceMonitor.targetNamespace Namespace where the Service to be scraped lives. Defaults to the release namespace.
@@ -163,8 +163,15 @@ serviceMonitor:
   interval: "60s"
   ## @param serviceMonitor.scrapeTimeout Prometheus scrape timeout
   scrapeTimeout: "30s"
+  ## @param serviceMonitor.path HTTP path used by Prometheus to scrape metrics
+  path: /metrics
+  ## @param serviceMonitor.port Name of the service port to scrape
+  port: http
+  ## @param serviceMonitor.scheme HTTP scheme used for scraping
+  scheme: http
   ## @param serviceMonitor.labels Additional labels for the ServiceMonitor
-  labels: {}
+  labels:
+    release: kube-prometheus-stack
   ## @param serviceMonitor.annotations Additional annotations for the ServiceMonitor
   annotations: {}
   ## @param serviceMonitor.honorLabels Honor labels from the scraped target
