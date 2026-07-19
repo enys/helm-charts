@@ -70,12 +70,28 @@ async function main(): Promise<void> {
   const app = express();
   app.use((req, res, next) => {
     const startTime = process.hrtime.bigint();
-    res.on("finish", () => {
+
+    const logRequest = (event: "finish" | "close") => {
       const durationMs = Number(process.hrtime.bigint() - startTime) / 1_000_000;
+      const path = req.path.replace(/[\r\n]/g, "");
+
       console.log(
-        `${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs.toFixed(1)}ms ip=${req.ip}`
+        JSON.stringify({
+          method: req.method,
+          path,
+          status: res.statusCode,
+          durationMs: Number(durationMs.toFixed(1)),
+          ip: req.ip,
+          event,
+        })
       );
+    };
+
+    res.once("finish", () => logRequest("finish"));
+    res.once("close", () => {
+      if (!res.writableEnded) logRequest("close");
     });
+
     next();
   });
 
