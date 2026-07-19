@@ -68,6 +68,16 @@ async function main(): Promise<void> {
   collector.startPeriodicCollection();
 
   const app = express();
+  app.use((req, res, next) => {
+    const startTime = process.hrtime.bigint();
+    res.on("finish", () => {
+      const durationMs = Number(process.hrtime.bigint() - startTime) / 1_000_000;
+      console.log(
+        `${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs.toFixed(1)}ms ip=${req.ip}`
+      );
+    });
+    next();
+  });
 
   app.get("/metrics", async (_req, res) => {
     try {
