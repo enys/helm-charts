@@ -19,10 +19,21 @@ helm repo update
 
 Each chart lives under `charts/<chart-name>/`. The TypeScript application source code for chart workloads lives under `apps/<app-name>/`.
 
-### Linting a chart
+### Validating charts locally (ct)
 
 ```bash
-helm lint charts/entra-app-exporter -f charts/entra-app-exporter/ci/default-values.yaml
+ct lint --chart-dirs charts --charts charts/entra-app-exporter
+ct install --chart-dirs charts --charts charts/entra-app-exporter
+```
+
+The CI workflow uses the same `ct lint` and `ct install` checks.
+
+### Releasing charts
+
+Charts are published from `main` with `helm/chart-releaser-action` (workflow: `.github/workflows/release-charts.yml`) and served from:
+
+```text
+https://enys.github.io/helm-charts
 ```
 
 ### Building the app
