@@ -396,7 +396,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "(time() - entra_app_exporter_last_scrape_timestamp_seconds{app_name=~\"$app\"} < 600)",
+          "expr": "(min((time() - entra_app_exporter_last_scrape_timestamp_seconds{app_name=~\"$app\"}) < bool 600) or on() vector(0))",
           "legendFormat": "Scrape freshness (<10m)",
           "range": true,
           "refId": "A"
