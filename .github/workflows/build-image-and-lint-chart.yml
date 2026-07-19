@@ -130,6 +130,7 @@ jobs:
           - ghcr.io/${{ github.repository_owner }}/entra-app-exporter:latest
           EOF
           )
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" \
+          gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1 || gh release create "$tag" \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "Image ${GITHUB_SHA}" \
             --notes "$notes"
