@@ -58,9 +58,9 @@ jobs:
           fi
 
           tmp_versions_file="$(mktemp)"
-          if gh api "/users/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null \
-            || gh api "/orgs/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null; then
-            if jq -e --arg version "${version}" '.[] | .metadata.container.tags[]? | select(. == $version)' "${tmp_versions_file}" >/dev/null; then
+          if gh api --paginate "/users/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null \
+            || gh api --paginate "/orgs/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null; then
+            if jq -e --arg version "${version}" --arg vversion "v${version}" '.[] | .metadata.container.tags[]? | select(. == $version or . == $vversion)' "${tmp_versions_file}" >/dev/null; then
               echo "::error::App version ${version} already exists in ghcr.io/${OWNER}/entra-app-exporter. Bump apps/entra-app-exporter/package.json before merging."
               exit 1
             fi
