@@ -50,7 +50,7 @@ jobs:
             tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:latest"
           fi
 
-          current_semver_tag="$(git tag --points-at "${GITHUB_SHA}" | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$' | head -n 1 || true)"
+          current_semver_tag="$(git tag --points-at "${GITHUB_SHA}" --sort=-version:refname | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' | head -n 1 || true)"
           if [ -n "${current_semver_tag}" ]; then
             tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${current_semver_tag}"
           fi
