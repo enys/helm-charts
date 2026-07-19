@@ -34,8 +34,6 @@ jobs:
       - name: Fail when app version already exists
         if: github.event_name == 'pull_request'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
         run: |
@@ -52,20 +50,20 @@ jobs:
             exit 1
           fi
 
-          if git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}" | grep -q .; then
-            echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
+          base_version="$(git show "${BASE_SHA}:apps/entra-app-exporter/package.json" | jq -r '.version')"
+          if [ -z "${base_version}" ] || [ "${base_version}" = "null" ]; then
+            echo "::error::Unable to read base version from apps/entra-app-exporter/package.json at ${BASE_SHA}"
             exit 1
           fi
 
-          tmp_versions_file="$(mktemp)"
-          if gh api --paginate "/users/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null \
-            || gh api --paginate "/orgs/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null; then
-            if jq -e --arg version "${version}" --arg vversion "v${version}" '.[] | .metadata.container.tags[]? | select(. == $version or . == $vversion)' "${tmp_versions_file}" >/dev/null; then
-              echo "::error::App version ${version} already exists in ghcr.io/${OWNER}/entra-app-exporter. Bump apps/entra-app-exporter/package.json before merging."
-              exit 1
-            fi
-          else
-            echo "::warning::Could not query container package versions; skipping GHCR version uniqueness check."
+          if [ "${version}" = "${base_version}" ]; then
+            echo "::error::App version is unchanged (${version}) while app files changed. Bump apps/entra-app-exporter/package.json before merging."
+            exit 1
+          fi
+
+          if git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}" | grep -q .; then
+            echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
+            exit 1
           fi
 
       - name: Set up Docker Buildx
