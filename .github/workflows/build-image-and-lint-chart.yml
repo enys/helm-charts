@@ -31,6 +31,43 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Fail when app version already exists
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if ! git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" | grep -q '^apps/entra-app-exporter/'; then
+            echo "No app changes detected; skipping version uniqueness check."
+            exit 0
+          fi
+
+          version="$(jq -r '.version' apps/entra-app-exporter/package.json)"
+          if [ -z "${version}" ] || [ "${version}" = "null" ]; then
+            echo "::error::Unable to read version from apps/entra-app-exporter/package.json"
+            exit 1
+          fi
+
+          if git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}" | grep -q .; then
+            echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
+            exit 1
+          fi
+
+          tmp_versions_file="$(mktemp)"
+          if gh api "/users/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null \
+            || gh api "/orgs/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null; then
+            if jq -e --arg version "${version}" '.[] | .metadata.container.tags[]? | select(. == $version)' "${tmp_versions_file}" >/dev/null; then
+              echo "::error::App version ${version} already exists in ghcr.io/${OWNER}/entra-app-exporter. Bump apps/entra-app-exporter/package.json before merging."
+              exit 1
+            fi
+          else
+            echo "::warning::Could not query container package versions; skipping GHCR version uniqueness check."
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
