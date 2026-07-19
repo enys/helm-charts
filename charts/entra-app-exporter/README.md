@@ -132,6 +132,10 @@ It includes:
 - expiry status distribution (`ok`, `warning`, `critical`, `expired`, `no_expiry`)
 - scrape error trend
 
+### Dashboard Preview
+
+![Entra App Exporter Grafana Dashboard](dashboards/images/entra-app-exporter-dashboard.png)
+
 ## Example Prometheus Alert Rules
 
 ```yaml
