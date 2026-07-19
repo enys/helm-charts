@@ -86,8 +86,17 @@ jobs:
           fi
 
           current_semver_tag="$(git tag --points-at "${GITHUB_SHA}" --sort=-version:refname | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' | head -n 1 || true)"
-          if [ -n "${current_semver_tag}" ]; then
-            tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${current_semver_tag}"
+          semver_image_tag="${current_semver_tag#v}"
+          if [ -z "${semver_image_tag}" ] && [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            if git diff --name-only "${{ github.event.before }}" "${GITHUB_SHA}" | grep -q '^apps/entra-app-exporter/'; then
+              package_version="$(jq -r '.version' apps/entra-app-exporter/package.json)"
+              if echo "${package_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+                semver_image_tag="${package_version}"
+              fi
+            fi
+          fi
+          if [ -n "${semver_image_tag}" ]; then
+            tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${semver_image_tag}"
           fi
 
           {
@@ -183,6 +192,15 @@ jobs:
         run: |
           tag="image-${GITHUB_SHA}"
           semver_tag="$(git tag --points-at "${GITHUB_SHA}" | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$' | head -n 1 || true)"
+          semver_tag="${semver_tag#v}"
+          if [ -z "${semver_tag}" ]; then
+            if git diff --name-only "${{ github.event.before }}" "${GITHUB_SHA}" | grep -q '^apps/entra-app-exporter/'; then
+              package_version="$(jq -r '.version' apps/entra-app-exporter/package.json)"
+              if echo "${package_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+                semver_tag="${package_version}"
+              fi
+            fi
+          fi
           semver_note=""
           if [ -n "${semver_tag}" ]; then
             semver_note=$'\n'"- ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${semver_tag}"
