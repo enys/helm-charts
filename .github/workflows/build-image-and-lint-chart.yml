@@ -61,7 +61,12 @@ jobs:
             exit 1
           fi
 
-          if git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}" | grep -q .; then
+          if ! remote_tags="$(git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}")"; then
+            echo "::error::Failed to query remote git tags for version uniqueness (git ls-remote)."
+            exit 1
+          fi
+
+          if echo "${remote_tags}" | grep -q .; then
             echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
             exit 1
           fi
