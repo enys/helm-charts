@@ -34,8 +34,6 @@ jobs:
       - name: Fail when app version already exists
         if: github.event_name == 'pull_request'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
         run: |
@@ -52,20 +50,25 @@ jobs:
             exit 1
           fi
 
-          if git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}" | grep -q .; then
-            echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
+          base_version="$(git show "${BASE_SHA}:apps/entra-app-exporter/package.json" | jq -r '.version')"
+          if [ -z "${base_version}" ] || [ "${base_version}" = "null" ]; then
+            echo "::error::Unable to read base version from apps/entra-app-exporter/package.json at ${BASE_SHA}"
             exit 1
           fi
 
-          tmp_versions_file="$(mktemp)"
-          if gh api --paginate "/users/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null \
-            || gh api --paginate "/orgs/${OWNER}/packages/container/entra-app-exporter/versions?per_page=100" > "${tmp_versions_file}" 2>/dev/null; then
-            if jq -e --arg version "${version}" --arg vversion "v${version}" '.[] | .metadata.container.tags[]? | select(. == $version or . == $vversion)' "${tmp_versions_file}" >/dev/null; then
-              echo "::error::App version ${version} already exists in ghcr.io/${OWNER}/entra-app-exporter. Bump apps/entra-app-exporter/package.json before merging."
-              exit 1
-            fi
-          else
-            echo "::warning::Could not query container package versions; skipping GHCR version uniqueness check."
+          if [ "${version}" = "${base_version}" ]; then
+            echo "::error::App version is unchanged (${version}) while app files changed. Bump apps/entra-app-exporter/package.json before merging."
+            exit 1
+          fi
+
+          if ! remote_tags="$(git ls-remote --tags origin "refs/tags/v${version}" "refs/tags/${version}")"; then
+            echo "::error::Failed to query remote git tags for version uniqueness (git ls-remote)."
+            exit 1
+          fi
+
+          if echo "${remote_tags}" | grep -q .; then
+            echo "::error::App version ${version} already exists as a git tag. Bump apps/entra-app-exporter/package.json before merging."
+            exit 1
           fi
 
       - name: Set up Docker Buildx
@@ -88,8 +91,17 @@ jobs:
           fi
 
           current_semver_tag="$(git tag --points-at "${GITHUB_SHA}" --sort=-version:refname | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' | head -n 1 || true)"
-          if [ -n "${current_semver_tag}" ]; then
-            tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${current_semver_tag}"
+          semver_image_tag="${current_semver_tag#v}"
+          if [ -z "${semver_image_tag}" ] && [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            if git diff --name-only "${{ github.event.before }}" "${GITHUB_SHA}" | grep -q '^apps/entra-app-exporter/'; then
+              package_version="$(jq -r '.version' apps/entra-app-exporter/package.json)"
+              if echo "${package_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+                semver_image_tag="${package_version}"
+              fi
+            fi
+          fi
+          if [ -n "${semver_image_tag}" ]; then
+            tags="${tags}"$'\n'"ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${semver_image_tag}"
           fi
 
           {
@@ -185,6 +197,15 @@ jobs:
         run: |
           tag="image-${GITHUB_SHA}"
           semver_tag="$(git tag --points-at "${GITHUB_SHA}" | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$' | head -n 1 || true)"
+          semver_tag="${semver_tag#v}"
+          if [ -z "${semver_tag}" ]; then
+            if git diff --name-only "${{ github.event.before }}" "${GITHUB_SHA}" | grep -q '^apps/entra-app-exporter/'; then
+              package_version="$(jq -r '.version' apps/entra-app-exporter/package.json)"
+              if echo "${package_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+                semver_tag="${package_version}"
+              fi
+            fi
+          fi
           semver_note=""
           if [ -n "${semver_tag}" ]; then
             semver_note=$'\n'"- ghcr.io/${{ github.repository_owner }}/entra-app-exporter:${semver_tag}"
