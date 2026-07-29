@@ -39,42 +39,42 @@ spec:
         {{- end }}
         {{- if .Values.alerts.rules.secretExpired.enabled }}
         - alert: EntraAppSecretExpired
-          expr: count(entra_app_secret_days_remaining < 0) > 0
+          expr: entra_app_secret_days_remaining < 0
           for: {{ .Values.alerts.rules.secretExpired.for }}
           labels:
             severity: {{ .Values.alerts.rules.secretExpired.severity | quote }}
           annotations:
             summary: "Expired Entra application client secret detected"
-            description: {{`"At least one application secret is already expired.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) is expired.\n  VALUE = {{ $value }}"`}}
         {{- end }}
         {{- if .Values.alerts.rules.secretExpiringSoon.enabled }}
         - alert: EntraAppSecretExpiringSoon
-          expr: count((entra_app_secret_days_remaining >= 0) and (entra_app_secret_days_remaining <= {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }})) > 0
+          expr: (entra_app_secret_days_remaining >= 0) and (entra_app_secret_days_remaining <= {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }})
           for: {{ .Values.alerts.rules.secretExpiringSoon.for }}
           labels:
             severity: {{ .Values.alerts.rules.secretExpiringSoon.severity | quote }}
           annotations:
             summary: "Entra application client secret expiring soon"
-            description: {{`"At least one application secret expires within the configured threshold.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) expires within {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
         {{- end }}
         {{- if .Values.alerts.rules.certificateExpired.enabled }}
         - alert: EntraAppCertificateExpired
-          expr: count(entra_app_certificate_days_remaining < 0) > 0
+          expr: entra_app_certificate_days_remaining < 0
           for: {{ .Values.alerts.rules.certificateExpired.for }}
           labels:
             severity: {{ .Values.alerts.rules.certificateExpired.severity | quote }}
           annotations:
             summary: "Expired Entra application certificate detected"
-            description: {{`"At least one application certificate is already expired.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) is expired.\n  VALUE = {{ $value }}"`}}
         {{- end }}
         {{- if .Values.alerts.rules.certificateExpiringSoon.enabled }}
         - alert: EntraAppCertificateExpiringSoon
-          expr: count((entra_app_certificate_days_remaining >= 0) and (entra_app_certificate_days_remaining <= {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }})) > 0
+          expr: (entra_app_certificate_days_remaining >= 0) and (entra_app_certificate_days_remaining <= {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }})
           for: {{ .Values.alerts.rules.certificateExpiringSoon.for }}
           labels:
             severity: {{ .Values.alerts.rules.certificateExpiringSoon.severity | quote }}
           annotations:
             summary: "Entra application certificate expiring soon"
-            description: {{`"At least one application certificate expires within the configured threshold.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) expires within {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
         {{- end }}
 {{- end }}
