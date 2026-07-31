@@ -177,6 +177,72 @@ serviceMonitor:
   ## @param serviceMonitor.honorLabels Honor labels from the scraped target
   honorLabels: false
 
+## @section Prometheus alerting rules
+
+alerts:
+  ## @param alerts.enabled Create a PrometheusRule resource with alerts for exporter health and credential expiry
+  enabled: false
+  ## @param alerts.namespace Namespace in which the PrometheusRule is created. Defaults to the release namespace.
+  namespace: ""
+  ## @param alerts.groupName Alert group name in the PrometheusRule spec
+  groupName: entra-app-exporter.rules
+  ## @param alerts.labels Additional labels for the PrometheusRule
+  labels:
+    release: kube-prometheus-stack
+  ## @param alerts.annotations Additional annotations for the PrometheusRule
+  annotations: {}
+  rules:
+    staleScrape:
+      ## @param alerts.rules.staleScrape.enabled Enable stale scrape alert
+      enabled: true
+      ## @param alerts.rules.staleScrape.maxAgeSeconds Maximum allowed age of the last successful scrape timestamp
+      maxAgeSeconds: 900
+      ## @param alerts.rules.staleScrape.for Prometheus 'for' duration for stale scrape alert
+      for: 10m
+      ## @param alerts.rules.staleScrape.severity Severity label value
+      severity: warning
+    scrapeErrors:
+      ## @param alerts.rules.scrapeErrors.enabled Enable scrape errors alert
+      enabled: true
+      ## @param alerts.rules.scrapeErrors.lookbackWindow Lookback window used by increase() on scrape error counter
+      lookbackWindow: 15m
+      ## @param alerts.rules.scrapeErrors.for Prometheus 'for' duration for scrape errors alert
+      for: 5m
+      ## @param alerts.rules.scrapeErrors.severity Severity label value
+      severity: warning
+    secretExpired:
+      ## @param alerts.rules.secretExpired.enabled Enable expired secret alert
+      enabled: true
+      ## @param alerts.rules.secretExpired.for Prometheus 'for' duration for expired secret alert
+      for: 5m
+      ## @param alerts.rules.secretExpired.severity Severity label value
+      severity: critical
+    secretExpiringSoon:
+      ## @param alerts.rules.secretExpiringSoon.enabled Enable expiring secret alert
+      enabled: true
+      ## @param alerts.rules.secretExpiringSoon.thresholdDays Threshold in days (inclusive) for secret expiry warning
+      thresholdDays: 30
+      ## @param alerts.rules.secretExpiringSoon.for Prometheus 'for' duration for expiring secret alert
+      for: 10m
+      ## @param alerts.rules.secretExpiringSoon.severity Severity label value
+      severity: warning
+    certificateExpired:
+      ## @param alerts.rules.certificateExpired.enabled Enable expired certificate alert
+      enabled: true
+      ## @param alerts.rules.certificateExpired.for Prometheus 'for' duration for expired certificate alert
+      for: 5m
+      ## @param alerts.rules.certificateExpired.severity Severity label value
+      severity: critical
+    certificateExpiringSoon:
+      ## @param alerts.rules.certificateExpiringSoon.enabled Enable expiring certificate alert
+      enabled: true
+      ## @param alerts.rules.certificateExpiringSoon.thresholdDays Threshold in days (inclusive) for certificate expiry warning
+      thresholdDays: 30
+      ## @param alerts.rules.certificateExpiringSoon.for Prometheus 'for' duration for expiring certificate alert
+      for: 10m
+      ## @param alerts.rules.certificateExpiringSoon.severity Severity label value
+      severity: warning
+
 ## @section Network Policy
 
 networkPolicy:

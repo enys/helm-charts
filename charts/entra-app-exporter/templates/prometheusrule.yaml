@@ -1,0 +1,80 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "entra-app-exporter.fullname" . }}-rules
+  namespace: {{ default .Release.Namespace .Values.alerts.namespace }}
+  labels:
+    {{- include "entra-app-exporter.labels" . | nindent 4 }}
+    {{- with .Values.alerts.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.alerts.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  groups:
+    - name: {{ .Values.alerts.groupName | quote }}
+      rules:
+        {{- if .Values.alerts.rules.staleScrape.enabled }}
+        - alert: EntraAppExporterStaleScrape
+          expr: time() - entra_app_exporter_last_scrape_timestamp_seconds > {{ .Values.alerts.rules.staleScrape.maxAgeSeconds }}
+          for: {{ .Values.alerts.rules.staleScrape.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.staleScrape.severity | quote }}
+          annotations:
+            summary: "Entra App Exporter scrape appears stale"
+            description: {{`"The last successful scrape is older than the configured threshold.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.scrapeErrors.enabled }}
+        - alert: EntraAppExporterScrapeErrors
+          expr: increase(entra_app_exporter_scrape_errors_total[{{ .Values.alerts.rules.scrapeErrors.lookbackWindow }}]) > 0
+          for: {{ .Values.alerts.rules.scrapeErrors.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.scrapeErrors.severity | quote }}
+          annotations:
+            summary: "Entra App Exporter scrape errors detected"
+            description: {{`"The exporter recorded one or more scrape errors in the lookback window.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.secretExpired.enabled }}
+        - alert: EntraAppSecretExpired
+          expr: entra_app_secret_days_remaining < 0
+          for: {{ .Values.alerts.rules.secretExpired.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.secretExpired.severity | quote }}
+          annotations:
+            summary: "Expired Entra application client secret detected"
+            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) is expired.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.secretExpiringSoon.enabled }}
+        - alert: EntraAppSecretExpiringSoon
+          expr: (entra_app_secret_days_remaining >= 0) and (entra_app_secret_days_remaining <= {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }})
+          for: {{ .Values.alerts.rules.secretExpiringSoon.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.secretExpiringSoon.severity | quote }}
+          annotations:
+            summary: "Entra application client secret expiring soon"
+            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) expires within {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.certificateExpired.enabled }}
+        - alert: EntraAppCertificateExpired
+          expr: entra_app_certificate_days_remaining < 0
+          for: {{ .Values.alerts.rules.certificateExpired.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.certificateExpired.severity | quote }}
+          annotations:
+            summary: "Expired Entra application certificate detected"
+            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) is expired.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.certificateExpiringSoon.enabled }}
+        - alert: EntraAppCertificateExpiringSoon
+          expr: (entra_app_certificate_days_remaining >= 0) and (entra_app_certificate_days_remaining <= {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }})
+          for: {{ .Values.alerts.rules.certificateExpiringSoon.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.certificateExpiringSoon.severity | quote }}
+          annotations:
+            summary: "Entra application certificate expiring soon"
+            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) expires within {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+{{- end }}
