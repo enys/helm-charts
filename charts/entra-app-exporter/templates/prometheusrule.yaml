@@ -55,7 +55,7 @@ spec:
             severity: {{ .Values.alerts.rules.secretExpiringSoon.severity | quote }}
           annotations:
             summary: "Entra application client secret expiring soon"
-            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) expires within {{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Client secret for app {{ $labels.app_name }} ({{ $labels.secret_name }}) expires within `}}{{ .Values.alerts.rules.secretExpiringSoon.thresholdDays }}{{` days.\n  VALUE = {{ $value }}"`}}
         {{- end }}
         {{- if .Values.alerts.rules.certificateExpired.enabled }}
         - alert: EntraAppCertificateExpired
@@ -75,6 +75,6 @@ spec:
             severity: {{ .Values.alerts.rules.certificateExpiringSoon.severity | quote }}
           annotations:
             summary: "Entra application certificate expiring soon"
-            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) expires within {{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }} days.\n  VALUE = {{ $value }}"`}}
+            description: {{`"Certificate for app {{ $labels.app_name }} ({{ $labels.cert_name }}) expires within `}}{{ .Values.alerts.rules.certificateExpiringSoon.thresholdDays }}{{` days.\n  VALUE = {{ $value }}"`}}
         {{- end }}
 {{- end }}
