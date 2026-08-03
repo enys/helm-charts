@@ -248,3 +248,17 @@ alerts:
 networkPolicy:
   ## @param networkPolicy.enabled Enable a NetworkPolicy for the exporter pods
   enabled: false
+
+## @section Grafana dashboard
+
+grafana:
+  dashboard:
+    ## @param grafana.dashboard.enabled Create a ConfigMap containing the Grafana dashboard JSON, picked up by the Grafana sidecar
+    enabled: false
+    ## @param grafana.dashboard.namespace Namespace in which the ConfigMap is created. Defaults to the release namespace.
+    namespace: ""
+    ## @param grafana.dashboard.labels Additional labels for the ConfigMap. The grafana_dashboard label is added automatically.
+    labels:
+      grafana_dashboard: "1"
+    ## @param grafana.dashboard.annotations Additional annotations for the ConfigMap
+    annotations: {}
