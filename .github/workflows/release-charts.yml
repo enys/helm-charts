@@ -3,11 +3,8 @@ name: Release Helm charts
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - "charts/**"
-      - ".github/workflows/release-charts.yml"
+    tags:
+      - "v*"
 
 permissions: {}
 
