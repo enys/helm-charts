@@ -93,9 +93,10 @@ jobs:
 
       - name: Create and push tag
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.resolve.outputs.tag }}
           TARGET_COMMIT: ${{ steps.resolve.outputs.target_commit }}
         run: |
           set -euo pipefail
           git tag -a "${TAG}" "${TARGET_COMMIT}" -m "Release ${TAG}"
-          git push origin "refs/tags/${TAG}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG}"
