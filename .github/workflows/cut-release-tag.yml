@@ -52,7 +52,7 @@ jobs:
 
           tag="v${version}"
           git fetch origin --tags --force
-          git fetch origin "${TARGET_BRANCH}:${TARGET_BRANCH}"
+          git fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
 
           if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
             echo "::error::Tag ${tag} already exists."
