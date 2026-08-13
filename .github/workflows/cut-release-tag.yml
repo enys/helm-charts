@@ -1,0 +1,102 @@
+name: Cut release tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.2.3 or v1.2.3)"
+        required: true
+        type: string
+      target_branch:
+        description: "Branch the release commit must belong to"
+        required: false
+        default: "main"
+        type: string
+      target_sha:
+        description: "Optional commit SHA to tag (defaults to target branch HEAD)"
+        required: false
+        default: ""
+        type: string
+
+permissions: {}
+
+jobs:
+  create-tag:
+    name: Create and push release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - name: Validate inputs and resolve target commit
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          INPUT_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -euo pipefail
+
+          version="${INPUT_VERSION#v}"
+          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          if ! echo "${version}" | grep -Eq "${semver}"; then
+            echo "::error::version must be semver (e.g. 1.2.3 or v1.2.3), got: ${INPUT_VERSION}"
+            exit 1
+          fi
+
+          tag="v${version}"
+          git fetch origin --tags --force
+          git fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "::error::Tag ${tag} already exists."
+            exit 1
+          fi
+
+          if [ -n "${INPUT_SHA}" ]; then
+            target_commit="${INPUT_SHA}"
+          else
+            target_commit="origin/${TARGET_BRANCH}"
+          fi
+
+          if ! git rev-parse --verify "${target_commit}^{commit}" >/dev/null 2>&1; then
+            echo "::error::Unable to resolve commit for target '${target_commit}'."
+            exit 1
+          fi
+
+          target_commit="$(git rev-parse "${target_commit}^{commit}")"
+
+          if ! git merge-base --is-ancestor "${target_commit}" "origin/${TARGET_BRANCH}"; then
+            echo "::error::Commit ${target_commit} is not contained in origin/${TARGET_BRANCH}."
+            exit 1
+          fi
+
+          pkg_version="$(git show "${target_commit}:apps/entra-app-exporter/package.json" | jq -r '.version')"
+          if [ -z "${pkg_version}" ] || [ "${pkg_version}" = "null" ]; then
+            echo "::error::Unable to read version from apps/entra-app-exporter/package.json at ${target_commit}."
+            exit 1
+          fi
+
+          if [ "${pkg_version}" != "${version}" ]; then
+            echo "::error::Tag version ${version} does not match package.json version ${pkg_version} at ${target_commit}. Run init-release first."
+            exit 1
+          fi
+
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "target_commit=${target_commit}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create and push tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+          TARGET_COMMIT: ${{ steps.resolve.outputs.target_commit }}
+        run: |
+          set -euo pipefail
+          git tag -a "${TAG}" "${TARGET_COMMIT}" -m "Release ${TAG}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG}"

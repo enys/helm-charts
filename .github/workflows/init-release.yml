@@ -1,0 +1,192 @@
+name: Init release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branch to open the PR into"
+        required: false
+        default: "main"
+        type: string
+      compare_ref:
+        description: "Optional baseline ref/sha/tag for change detection (defaults to latest v* tag)"
+        required: false
+        default: ""
+        type: string
+      chart_version:
+        description: "Chart version to set (e.g. 0.2.0)"
+        required: true
+        type: string
+      app_version:
+        description: "App version to set (e.g. 1.2.0)"
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  prepare-release:
+    name: Create version bump PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.target_branch }}
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: v3.18.4
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
+        with:
+          version: v3.11.0
+
+      - name: Validate versions
+        env:
+          CHART_VERSION: ${{ inputs.chart_version }}
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+
+          if ! echo "${CHART_VERSION}" | grep -Eq "${semver}"; then
+            echo "::error::chart_version must be semver without v prefix (got: ${CHART_VERSION})"
+            exit 1
+          fi
+
+          if ! echo "${APP_VERSION}" | grep -Eq "${semver}"; then
+            echo "::error::app_version must be semver without v prefix (got: ${APP_VERSION})"
+            exit 1
+          fi
+
+      - name: Detect changed chart with ct
+        id: detect-chart
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          COMPARE_REF: ${{ inputs.compare_ref }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin --tags --force
+          git fetch origin "${TARGET_BRANCH}"
+
+          compare_ref="${COMPARE_REF}"
+          if [ -z "${compare_ref}" ]; then
+            compare_ref="$(git tag --list 'v*' --sort=-version:refname | head -n 1 || true)"
+            if [ -z "${compare_ref}" ]; then
+              echo "::error::No baseline tag found (v*). Provide compare_ref explicitly."
+              exit 1
+            fi
+          fi
+
+          if ! git rev-parse --verify "${compare_ref}^{commit}" >/dev/null 2>&1; then
+            echo "::error::compare_ref '${compare_ref}' does not resolve to a commit."
+            exit 1
+          fi
+
+          compare_branch="ct-compare-$(date +%s)"
+          git branch "${compare_branch}" "${compare_ref}^{commit}"
+          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${compare_branch}" | sed '/^\s*$/d' || true)"
+          chart_count="$(echo "${changed_charts}" | sed '/^\s*$/d' | wc -l | tr -d ' ')"
+
+          if [ "${chart_count}" = "0" ]; then
+            echo "::error::No changed chart detected by ct against baseline ${compare_ref}."
+            exit 1
+          fi
+
+          if [ "${chart_count}" != "1" ]; then
+            echo "::error::Expected exactly one changed chart, found ${chart_count}:"
+            echo "${changed_charts}"
+            exit 1
+          fi
+
+          chart_dir="$(echo "${changed_charts}" | head -n 1)"
+          chart_name="$(basename "${chart_dir}")"
+          app_package_json="apps/${chart_name}/package.json"
+
+          echo "chart_dir=${chart_dir}" >> "${GITHUB_OUTPUT}"
+          echo "chart_name=${chart_name}" >> "${GITHUB_OUTPUT}"
+          echo "app_package_json=${app_package_json}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update versions
+        env:
+          CHART_DIR: ${{ steps.detect-chart.outputs.chart_dir }}
+          APP_PACKAGE_JSON: ${{ steps.detect-chart.outputs.app_package_json }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "${CHART_DIR}/Chart.yaml" ]; then
+            echo "::error::Chart.yaml not found at ${CHART_DIR}/Chart.yaml"
+            exit 1
+          fi
+
+          tmp_chart="$(mktemp)"
+          awk -v chart_version="${CHART_VERSION}" -v app_version="${APP_VERSION}" '
+            /^version:/ { print "version: " chart_version; next }
+            /^appVersion:/ { print "appVersion: \"" app_version "\""; next }
+            { print }
+          ' "${CHART_DIR}/Chart.yaml" > "${tmp_chart}"
+          mv "${tmp_chart}" "${CHART_DIR}/Chart.yaml"
+
+          if [ -f "${APP_PACKAGE_JSON}" ]; then
+            tmp_json="$(mktemp)"
+            jq --arg version "${APP_VERSION}" '.version = $version' "${APP_PACKAGE_JSON}" > "${tmp_json}"
+            mv "${tmp_json}" "${APP_PACKAGE_JSON}"
+          fi
+
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          APP_VERSION: ${{ inputs.app_version }}
+          CHART_DIR: ${{ steps.detect-chart.outputs.chart_dir }}
+          CHART_NAME: ${{ steps.detect-chart.outputs.chart_name }}
+          APP_PACKAGE_JSON: ${{ steps.detect-chart.outputs.app_package_json }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          branch="release/${CHART_NAME}-${CHART_VERSION}-$(date +%s)"
+          git checkout -b "${branch}"
+          git add "${CHART_DIR}/Chart.yaml"
+          if [ -f "${APP_PACKAGE_JSON}" ]; then
+            git add "${APP_PACKAGE_JSON}"
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No version changes detected."
+            exit 0
+          fi
+
+          git commit --signoff -m "chore(release): bump ${CHART_NAME} to chart ${CHART_VERSION} (app ${APP_VERSION})"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${branch}"
+
+          pr_url="$(gh pr create \
+            --base "${TARGET_BRANCH}" \
+            --head "${branch}" \
+            --title "chore(release): bump ${CHART_NAME} to chart ${CHART_VERSION} (app ${APP_VERSION})" \
+            --body "Automated release prep PR generated from chart changes detected by ct.")"
+
+          echo "PR created: ${pr_url}"
+
+          # GITHUB_TOKEN suppresses pull_request events on bot-pushed branches.
+          # Explicitly dispatch the build-and-lint workflow so the release PR
+          # gets the same validation as any other PR.
+          gh workflow run build-image-and-lint-chart.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref "${branch}"
