@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       target_branch:
-        description: "Branch to compare against and open the PR into"
+        description: "Branch to open the PR into"
         required: false
         default: "main"
+        type: string
+      compare_ref:
+        description: "Optional baseline ref/sha/tag for change detection (defaults to latest v* tag)"
+        required: false
+        default: ""
         type: string
       chart_version:
         description: "Chart version to set (e.g. 0.2.0)"
@@ -26,12 +31,14 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.target_branch }}
           persist-credentials: false
 
       - name: Set up Helm
@@ -66,15 +73,34 @@ jobs:
         id: detect-chart
         env:
           TARGET_BRANCH: ${{ inputs.target_branch }}
+          COMPARE_REF: ${{ inputs.compare_ref }}
         run: |
           set -euo pipefail
 
-          git fetch origin "${TARGET_BRANCH}:${TARGET_BRANCH}"
-          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${TARGET_BRANCH}" | sed '/^\s*$/d' || true)"
+          git fetch origin --tags --force
+          git fetch origin "${TARGET_BRANCH}"
+
+          compare_ref="${COMPARE_REF}"
+          if [ -z "${compare_ref}" ]; then
+            compare_ref="$(git tag --list 'v*' --sort=-version:refname | head -n 1 || true)"
+            if [ -z "${compare_ref}" ]; then
+              echo "::error::No baseline tag found (v*). Provide compare_ref explicitly."
+              exit 1
+            fi
+          fi
+
+          if ! git rev-parse --verify "${compare_ref}^{commit}" >/dev/null 2>&1; then
+            echo "::error::compare_ref '${compare_ref}' does not resolve to a commit."
+            exit 1
+          fi
+
+          compare_branch="ct-compare-$(date +%s)"
+          git branch "${compare_branch}" "${compare_ref}^{commit}"
+          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${compare_branch}" | sed '/^\s*$/d' || true)"
           chart_count="$(echo "${changed_charts}" | sed '/^\s*$/d' | wc -l | tr -d ' ')"
 
           if [ "${chart_count}" = "0" ]; then
-            echo "::error::No changed chart detected by ct against ${TARGET_BRANCH}. Run this from a branch containing chart changes."
+            echo "::error::No changed chart detected by ct against baseline ${compare_ref}."
             exit 1
           fi
 
@@ -150,8 +176,17 @@ jobs:
           git commit --signoff -m "chore(release): bump ${CHART_NAME} to chart ${CHART_VERSION} (app ${APP_VERSION})"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${branch}"
 
-          gh pr create \
+          pr_url="$(gh pr create \
             --base "${TARGET_BRANCH}" \
             --head "${branch}" \
             --title "chore(release): bump ${CHART_NAME} to chart ${CHART_VERSION} (app ${APP_VERSION})" \
-            --body "Automated release prep PR generated from chart changes detected by ct."
+            --body "Automated release prep PR generated from chart changes detected by ct.")"
+
+          echo "PR created: ${pr_url}"
+
+          # GITHUB_TOKEN suppresses pull_request events on bot-pushed branches.
+          # Explicitly dispatch the build-and-lint workflow so the release PR
+          # gets the same validation as any other PR.
+          gh workflow run build-image-and-lint-chart.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref "${branch}"

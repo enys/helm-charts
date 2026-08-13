@@ -181,5 +181,6 @@ jobs:
           )
           gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1 || gh release create "$tag" \
             --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
             --title "Image ${GITHUB_REF_NAME}" \
             --notes "$notes"
