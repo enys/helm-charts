@@ -1,4 +1,4 @@
-name: Cut release tag
+name: Release Docker image
 
 on:
   workflow_dispatch:
@@ -104,10 +104,10 @@ jobs:
           git tag -a "${TAG}" "${TARGET_COMMIT}" -m "Release ${TAG}"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG}"
 
-      - name: Trigger chart release workflow
+      - name: Trigger image build and release workflow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.resolve.outputs.tag }}
         run: |
           set -euo pipefail
-          gh workflow run release-charts.yml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"
+          gh workflow run docker-image-ci.yml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"

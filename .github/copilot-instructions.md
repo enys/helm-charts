@@ -22,7 +22,7 @@ Run from repository root unless noted.
 - Runtime flow is `src/index.ts` (HTTP server, env parsing, health/ready/metrics endpoints) -> `src/collector.ts` (Graph API pagination + collection loop) -> `src/metrics.ts` (Prometheus metric definitions).
 - The chart’s `templates/deployment.yaml` maps Helm values to runtime env vars (`PORT`, `SCRAPE_INTERVAL_SECONDS`, Azure auth vars), so changes to config/env expectations in app code must be mirrored in chart values/templates.
 - Azure credential wiring is abstracted via `templates/_helpers.tpl` (`entra-app-exporter.secretName`) and `templates/secret.yaml` (create chart-managed Secret unless `azure.existingSecret` is set).
-- CI in `.github/workflows/build-image-and-lint-chart.yml` validates both sides together: build image, run `ct lint`, then `ct install` in kind with the locally built image loaded and Helm image overrides.
+- CI in `.github/workflows/docker-image-ci.yml` validates both sides together: build image, run `ct lint`, then `ct install` in kind with the locally built image loaded and Helm image overrides.
 
 ## Key conventions in this codebase
 

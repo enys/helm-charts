@@ -187,6 +187,6 @@ jobs:
           # GITHUB_TOKEN suppresses pull_request events on bot-pushed branches.
           # Explicitly dispatch the build-and-lint workflow so the release PR
           # gets the same validation as any other PR.
-          gh workflow run build-image-and-lint-chart.yml \
+          gh workflow run docker-image-ci.yml \
             --repo "${GITHUB_REPOSITORY}" \
             --ref "${branch}"
