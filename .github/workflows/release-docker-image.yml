@@ -1,4 +1,4 @@
-name: Cut release tag
+name: Release Docker image
 
 on:
   workflow_dispatch:
