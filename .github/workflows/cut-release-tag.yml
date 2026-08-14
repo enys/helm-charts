@@ -25,6 +25,7 @@ jobs:
     name: Create and push release tag
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     steps:
       - name: Checkout code
@@ -102,3 +103,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${TAG}" "${TARGET_COMMIT}" -m "Release ${TAG}"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG}"
+
+      - name: Trigger chart release workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh workflow run release-charts.yml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"
