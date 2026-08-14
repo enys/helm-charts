@@ -110,4 +110,4 @@ jobs:
           TAG: ${{ steps.resolve.outputs.tag }}
         run: |
           set -euo pipefail
-          gh workflow run build-image-and-lint-chart.yml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"
+          gh workflow run docker-image-ci.yml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"

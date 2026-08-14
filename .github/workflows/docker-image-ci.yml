@@ -1,4 +1,4 @@
-name: Build image and lint chart
+name: Docker image CI/CD
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     paths:
       - "apps/entra-app-exporter/**"
       - "charts/entra-app-exporter/**"
-      - ".github/workflows/build-image-and-lint-chart.yml"
+      - ".github/workflows/docker-image-ci.yml"
   push:
     branches:
       - main
@@ -15,7 +15,7 @@ on:
     paths:
       - "apps/entra-app-exporter/**"
       - "charts/entra-app-exporter/**"
-      - ".github/workflows/build-image-and-lint-chart.yml"
+      - ".github/workflows/docker-image-ci.yml"
 
 permissions: {}
 
