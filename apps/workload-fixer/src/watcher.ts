@@ -28,10 +28,20 @@ export class WorkloadWatcher {
         pollIntervalSeconds: this.config.pollIntervalSeconds,
       })
     );
-    // Run immediately, then on interval.
-    void this.poll();
+    // Run immediately, then on interval without overlapping polls.
+    let polling = false;
+    const runPoll = async (): Promise<void> => {
+      if (polling) return;
+      polling = true;
+      try {
+        await this.poll();
+      } finally {
+        polling = false;
+      }
+    };
+    void runPoll();
     this.intervalHandle = setInterval(
-      () => void this.poll(),
+      () => void runPoll(),
       this.config.pollIntervalSeconds * 1000
     );
   }
