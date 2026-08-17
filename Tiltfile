@@ -32,8 +32,12 @@ local_values_file = 'tilt-values.yaml'
 if not os.path.exists(local_values_file):
   fail('Missing tilt-values.yaml. Provide required Helm values there.')
 
-# Build the Docker image locally; Tilt auto-injects it into the deployment.
-docker_build(image_ref, app_dir)
+# Build the Docker image locally.
+# For local clusters (kind/docker-desktop/minikube) Tilt skips the push automatically.
+# For remote clusters, set TILT_PUSH=false in your environment or login with:
+#   echo <PAT> | docker login ghcr.io -u <username> --password-stdin
+push = os.environ.get('TILT_PUSH', '') != 'false'
+docker_build(image_ref, app_dir, push=push)
 
 helm_resource(
   name=chart_name,
