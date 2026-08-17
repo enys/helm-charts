@@ -42,6 +42,7 @@ helm_resource(
   flags=['--values=' + local_values_file],
   deps=[chart_path, local_values_file],
   image_deps=[image_ref],
+  image_keys=[('image.repository', 'image.tag')],
 )
 
 k8s_resource(
