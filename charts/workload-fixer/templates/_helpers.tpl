@@ -63,5 +63,9 @@ Create the name of the service account to use
 Namespace to watch: defaults to release namespace.
 */}}
 {{- define "workload-fixer.watchNamespace" -}}
-{{- default .Release.Namespace .Values.watcher.namespace }}
+{{- if and .Values.rbac.clusterScoped (empty .Values.watcher.namespace) -}}
+{{- "" -}}
+{{- else -}}
+{{- default .Release.Namespace .Values.watcher.namespace -}}
+{{- end -}}
 {{- end }}
