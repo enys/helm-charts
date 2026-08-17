@@ -1,0 +1,15 @@
+Thank you for installing {{ .Chart.Name }}.
+
+The workload-fixer controller is now running. It will watch StatefulSets in
+namespace "{{ include "workload-fixer.watchNamespace" . }}" and automatically
+fix stuck rolling updates.
+
+To opt a StatefulSet in to automatic fixing, add the annotation:
+
+  workload-fixer/fix-stuck-rollout: "true"
+
+Configuration:
+  Stuck threshold : {{ .Values.watcher.stuckThresholdSeconds }}s
+  Poll interval   : {{ .Values.watcher.pollIntervalSeconds }}s
+  Watch namespace : {{ include "workload-fixer.watchNamespace" . }}
+  RBAC scope      : {{ if .Values.rbac.clusterScoped }}cluster-wide (ClusterRole){{ else }}namespaced (Role){{ end }}

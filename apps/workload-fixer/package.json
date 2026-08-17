@@ -1,0 +1,26 @@
+{
+  "name": "workload-fixer",
+  "version": "0.1.0",
+  "description": "Kubernetes controller that detects and fixes stuck StatefulSet rolling updates by deleting blocked pods",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "lint": "eslint src --ext .ts",
+    "test": "node --require ts-node/register --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "1.4.0",
+    "express": "4.22.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.0",
+    "@types/node": "24.13.3",
+    "@typescript-eslint/eslint-plugin": "8.0.0",
+    "@typescript-eslint/parser": "8.0.0",
+    "eslint": "9.0.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3"
+  }
+}
