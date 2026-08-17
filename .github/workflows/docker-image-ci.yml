@@ -225,6 +225,10 @@ jobs:
         run: npm ci
         working-directory: apps/workload-fixer
 
+      - name: Run linter
+        run: npm run lint
+        working-directory: apps/workload-fixer
+
       - name: Run tests
         run: npm test
         working-directory: apps/workload-fixer
