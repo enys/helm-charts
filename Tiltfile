@@ -15,10 +15,16 @@ config.define_string('chart', args=False, usage='Chart to deploy (entra-app-expo
 cfg = config.parse()
 chart_name = cfg.get('chart', 'entra-app-exporter')
 
-supported_charts = ['entra-app-exporter', 'workload-fixer']
-if chart_name not in supported_charts:
-  fail('Unknown chart "{}". Supported: {}'.format(chart_name, ', '.join(supported_charts)))
+# Map chart name -> (app source dir, image repository)
+chart_config = {
+  'entra-app-exporter': ('apps/entra-app-exporter', 'ghcr.io/enys/entra-app-exporter'),
+  'workload-fixer':     ('apps/workload-fixer',     'ghcr.io/enys/workload-fixer'),
+}
 
+if chart_name not in chart_config:
+  fail('Unknown chart "{}". Supported: {}'.format(chart_name, ', '.join(chart_config.keys())))
+
+app_dir, image_ref = chart_config[chart_name]
 chart_path = 'charts/' + chart_name
 release_name = chart_name + '-tilt'
 
@@ -26,12 +32,16 @@ local_values_file = 'tilt-values.yaml'
 if not os.path.exists(local_values_file):
   fail('Missing tilt-values.yaml. Provide required Helm values there.')
 
+# Build the Docker image locally; Tilt auto-injects it into the deployment.
+docker_build(image_ref, app_dir)
+
 helm_resource(
   name=chart_name,
   release_name=release_name,
   chart=chart_path,
   flags=['--values=' + local_values_file],
   deps=[chart_path, local_values_file],
+  image_deps=[image_ref],
 )
 
 k8s_resource(
