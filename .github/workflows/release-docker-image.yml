@@ -3,6 +3,14 @@ name: Release Docker image
 on:
   workflow_dispatch:
     inputs:
+      app:
+        description: "Which app to release"
+        required: true
+        default: "entra-app-exporter"
+        type: choice
+        options:
+          - entra-app-exporter
+          - workload-fixer
       version:
         description: "Release version (e.g. 1.2.3 or v1.2.3)"
         required: true
@@ -38,6 +46,7 @@ jobs:
       - name: Validate inputs and resolve target commit
         id: resolve
         env:
+          INPUT_APP: ${{ inputs.app }}
           INPUT_VERSION: ${{ inputs.version }}
           TARGET_BRANCH: ${{ inputs.target_branch }}
           INPUT_SHA: ${{ inputs.target_sha }}
@@ -51,7 +60,7 @@ jobs:
             exit 1
           fi
 
-          tag="v${version}"
+          tag="${INPUT_APP}-v${version}"
           git fetch origin --tags --force
           git fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
 
@@ -78,14 +87,15 @@ jobs:
             exit 1
           fi
 
-          pkg_version="$(git show "${target_commit}:apps/entra-app-exporter/package.json" | jq -r '.version')"
+          pkg_path="apps/${INPUT_APP}/package.json"
+          pkg_version="$(git show "${target_commit}:${pkg_path}" | jq -r '.version')"
           if [ -z "${pkg_version}" ] || [ "${pkg_version}" = "null" ]; then
-            echo "::error::Unable to read version from apps/entra-app-exporter/package.json at ${target_commit}."
+            echo "::error::Unable to read version from ${pkg_path} at ${target_commit}."
             exit 1
           fi
 
           if [ "${pkg_version}" != "${version}" ]; then
-            echo "::error::Tag version ${version} does not match package.json version ${pkg_version} at ${target_commit}. Run init-release first."
+            echo "::error::Tag version ${version} does not match ${pkg_path} version ${pkg_version} at ${target_commit}. Run init-release first."
             exit 1
           fi
 

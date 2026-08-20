@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - "entra-app-exporter-v*"
+      - "workload-fixer-v*"
 
 permissions: {}
 
