@@ -1,0 +1,94 @@
+# Example StatefulSet to test workload-fixer inside a cluster.
+#
+# The image deliberately starts in a "good" state.  To simulate a stuck
+# rolling update:
+#
+#   1. Deploy this manifest (and the workload-fixer chart) into the same
+#      namespace, e.g.:
+#
+#        kubectl apply -f examples/workload-fixer-test-sts.yaml
+#
+#   2. Trigger a stuck update by patching the image to one that never
+#      becomes Ready.  The init container sleeps for 1 h, so the pod
+#      stays in Init state and the StatefulSet stalls:
+#
+#        kubectl patch statefulset workload-fixer-test \
+#          --type='json' \
+#          -p='[{"op":"replace","path":"/spec/template/spec/initContainers/0/args","value":["3600"]}]'
+#
+#   3. Watch workload-fixer detect the stuck rollout and delete the
+#      blocked pod (default threshold: 300 s, poll: 30 s):
+#
+#        kubectl get pods -l app.kubernetes.io/name=workload-fixer-test -w
+#        kubectl logs -l app.kubernetes.io/name=workload-fixer -c workload-fixer -f
+#
+#   4. To recover, patch the init container back to a short sleep:
+#
+#        kubectl patch statefulset workload-fixer-test \
+#          --type='json' \
+#          -p='[{"op":"replace","path":"/spec/template/spec/initContainers/0/args","value":["1"]}]'
+#
+# The annotation "workload-fixer/fix-stuck-rollout: 'true'" opts this
+# StatefulSet into automatic remediation.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workload-fixer-test
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: workload-fixer-test
+  namespace: workload-fixer-test
+  annotations:
+    workload-fixer/fix-stuck-rollout: "true"
+spec:
+  serviceName: workload-fixer-test
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: workload-fixer-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: workload-fixer-test
+    spec:
+      # An init container whose sleep duration controls whether the pod
+      # becomes Ready quickly (1 s) or gets stuck (3600 s).
+      initContainers:
+        - name: init-sleep
+          image: busybox:1.37.0
+          args: ["sleep", "1"]
+      containers:
+        - name: app
+          image: busybox:1.37.0
+          args: ["sh", "-c", "echo 'ready'; sleep infinity"]
+          readinessProbe:
+            exec:
+              command: ["true"]
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+  updateStrategy:
+    type: RollingUpdate
+---
+# Headless service required by StatefulSet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: workload-fixer-test
+  namespace: workload-fixer-test
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: workload-fixer-test
+  ports:
+    - port: 80
+      name: http
