@@ -54,7 +54,8 @@ spec:
       initContainers:
         - name: init-sleep
           image: busybox:1.37.0
-          args: ["sleep", "1"]
+          command: ["sleep"]
+          args: ["1"]
           resources:
             requests:
               cpu: 10m
