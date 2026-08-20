@@ -95,8 +95,9 @@ jobs:
           fi
 
           compare_branch="ct-compare-$(date +%s)"
-          git branch "${compare_branch}" "${compare_ref}^{commit}"
-          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${compare_branch}" | sed '/^\s*$/d' || true)"
+          compare_commit="$(git rev-parse "${compare_ref}^{commit}")"
+          git update-ref "refs/remotes/origin/${compare_branch}" "${compare_commit}"
+          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${compare_branch}" | sed '/^\s*$/d')"
           chart_count="$(echo "${changed_charts}" | sed '/^\s*$/d' | wc -l | tr -d ' ')"
 
           if [ "${chart_count}" = "0" ]; then
