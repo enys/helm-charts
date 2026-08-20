@@ -55,6 +55,13 @@ spec:
         - name: init-sleep
           image: busybox:1.37.0
           args: ["sleep", "1"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
       containers:
         - name: app
           image: busybox:1.37.0
