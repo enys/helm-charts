@@ -163,17 +163,7 @@ export class WorkloadWatcher {
       return;
     }
 
-    console.log(
-      JSON.stringify({
-        msg: "Stuck rollout threshold exceeded, attempting fix",
-        sts: key,
-        stuckForSeconds: Math.round(stuckForSeconds),
-        updateRevision,
-      })
-    );
-
-    await this.fixStuckRollout(sts);
-  }
+    await this.fixStuckRollout(sts, Math.round(stuckForSeconds));  }
 
   /**
    * Finds and deletes the pod blocking the rollout.
@@ -185,7 +175,7 @@ export class WorkloadWatcher {
    *
    * We delete at most one pod per invocation to avoid cascading deletes.
    */
-  private async fixStuckRollout(sts: k8s.V1StatefulSet): Promise<void> {
+  private async fixStuckRollout(sts: k8s.V1StatefulSet, stuckForSeconds: number): Promise<void> {
     const namespace = sts.metadata?.namespace ?? "default";
     const stsName = sts.metadata?.name ?? "";
     const updateRevision = sts.status?.updateRevision ?? "";
@@ -231,6 +221,16 @@ export class WorkloadWatcher {
 
     const podName = targetPod.metadata?.name ?? "";
     const podUid = targetPod.metadata?.uid ?? "";
+
+    console.log(
+      JSON.stringify({
+        msg: "Stuck rollout threshold exceeded, attempting fix",
+        sts: key,
+        pod: podName,
+        stuckForSeconds,
+        updateRevision,
+      })
+    );
 
     try {
       await this.k8sCoreApi.deleteNamespacedPod({
