@@ -45,11 +45,13 @@ function makePod(overrides: {
   ownerStsName?: string;
   revisionHash?: string;
   ready?: boolean;
+  uid?: string;
 }): k8s.V1Pod {
   return {
     metadata: {
       name: overrides.name ?? "my-sts-0",
       namespace: overrides.namespace ?? "test-ns",
+      uid: overrides.uid,
       ownerReferences: overrides.ownerStsName
         ? [{ apiVersion: "apps/v1", kind: "StatefulSet", name: overrides.ownerStsName, uid: "uid-1" }]
         : [],
@@ -181,6 +183,110 @@ describe("WorkloadWatcher.selectTargetPod", () => {
     const watcher = makeWatcher();
     const target = watcher.selectTargetPod([], "my-sts", "rev-2");
     assert.equal(target, null);
+  });
+});
+
+// ── delete precondition tests ────────────────────────────────────────────────
+
+type DeleteCall = { name: string; namespace: string; uid: string };
+
+function makeStuckSts(): k8s.V1StatefulSet {
+  return makeSts({
+    annotations: { [FIX_ANNOTATION]: "true" },
+    replicas: 2,
+    readyReplicas: 1,
+    currentRevision: "rev-1",
+    updateRevision: "rev-2",
+  });
+}
+
+function makeStuckPod(): k8s.V1Pod {
+  return makePod({
+    name: "my-sts-0",
+    ownerStsName: "my-sts",
+    revisionHash: "rev-1",
+    ready: false,
+    uid: "pod-uid-abc",
+  });
+}
+
+describe("WorkloadWatcher delete UID precondition", () => {
+  it("passes the observed pod UID as a delete precondition", async () => {
+    const deleteCalls: DeleteCall[] = [];
+
+    const appsApi = {
+      listNamespacedStatefulSet: async () => ({ items: [makeStuckSts()] }),
+    } as unknown as k8s.AppsV1Api;
+
+    const coreApi = {
+      listNamespacedPod: async () => ({ items: [makeStuckPod()] }),
+      deleteNamespacedPod: async (params: { name: string; namespace: string; body?: { preconditions?: { uid?: string } } }) => {
+        deleteCalls.push({ name: params.name, namespace: params.namespace, uid: params.body?.preconditions?.uid ?? "" });
+      },
+    } as unknown as k8s.CoreV1Api;
+
+    const watcher = new WorkloadWatcher(
+      { namespace: "test-ns", stuckThresholdSeconds: 0, pollIntervalSeconds: 30 },
+      undefined,
+      { appsApi, coreApi }
+    );
+
+    // First poll: detects stuck, records it in stuckMap.
+    await watcher.poll();
+    assert.equal(deleteCalls.length, 0, "should not delete on first detection");
+
+    // Second poll: threshold (0s) exceeded, triggers delete.
+    await watcher.poll();
+    assert.equal(deleteCalls.length, 1, "should delete on second poll");
+    assert.equal(deleteCalls[0]!.name, "my-sts-0");
+    assert.equal(deleteCalls[0]!.uid, "pod-uid-abc");
+  });
+
+  it("treats a 404 response as harmless and does not throw", async () => {
+    const appsApi = {
+      listNamespacedStatefulSet: async () => ({ items: [makeStuckSts()] }),
+    } as unknown as k8s.AppsV1Api;
+
+    const coreApi = {
+      listNamespacedPod: async () => ({ items: [makeStuckPod()] }),
+      deleteNamespacedPod: async () => {
+        const err = Object.assign(new Error("Not Found"), { statusCode: 404 });
+        throw err;
+      },
+    } as unknown as k8s.CoreV1Api;
+
+    const watcher = new WorkloadWatcher(
+      { namespace: "test-ns", stuckThresholdSeconds: 0, pollIntervalSeconds: 30 },
+      undefined,
+      { appsApi, coreApi }
+    );
+
+    await watcher.poll(); // seed stuckMap
+    // Should resolve without throwing despite 404.
+    await assert.doesNotReject(() => watcher.poll());
+  });
+
+  it("treats a 409 (UID conflict) response as harmless and does not throw", async () => {
+    const appsApi = {
+      listNamespacedStatefulSet: async () => ({ items: [makeStuckSts()] }),
+    } as unknown as k8s.AppsV1Api;
+
+    const coreApi = {
+      listNamespacedPod: async () => ({ items: [makeStuckPod()] }),
+      deleteNamespacedPod: async () => {
+        const err = Object.assign(new Error("Conflict"), { statusCode: 409 });
+        throw err;
+      },
+    } as unknown as k8s.CoreV1Api;
+
+    const watcher = new WorkloadWatcher(
+      { namespace: "test-ns", stuckThresholdSeconds: 0, pollIntervalSeconds: 30 },
+      undefined,
+      { appsApi, coreApi }
+    );
+
+    await watcher.poll(); // seed stuckMap
+    await assert.doesNotReject(() => watcher.poll());
   });
 });
 

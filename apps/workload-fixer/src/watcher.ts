@@ -9,14 +9,23 @@ export class WorkloadWatcher {
   private readonly stuckMap = new Map<StsKey, StuckEntry>();
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
 
-  constructor(config: WatcherConfig, kc?: k8s.KubeConfig) {
+  constructor(
+    config: WatcherConfig,
+    kc?: k8s.KubeConfig,
+    apis?: { appsApi?: k8s.AppsV1Api; coreApi?: k8s.CoreV1Api }
+  ) {
     this.config = config;
-    const kubeConfig = kc ?? new k8s.KubeConfig();
-    if (!kc) {
-      kubeConfig.loadFromDefault();
+    if (apis?.appsApi && apis?.coreApi) {
+      this.k8sAppsApi = apis.appsApi;
+      this.k8sCoreApi = apis.coreApi;
+    } else {
+      const kubeConfig = kc ?? new k8s.KubeConfig();
+      if (!kc) {
+        kubeConfig.loadFromDefault();
+      }
+      this.k8sAppsApi = apis?.appsApi ?? kubeConfig.makeApiClient(k8s.AppsV1Api);
+      this.k8sCoreApi = apis?.coreApi ?? kubeConfig.makeApiClient(k8s.CoreV1Api);
     }
-    this.k8sAppsApi = kubeConfig.makeApiClient(k8s.AppsV1Api);
-    this.k8sCoreApi = kubeConfig.makeApiClient(k8s.CoreV1Api);
   }
 
   start(): void {
@@ -217,23 +226,53 @@ export class WorkloadWatcher {
     }
 
     const podName = targetPod.metadata?.name ?? "";
+    const podUid = targetPod.metadata?.uid ?? "";
+
     try {
-      await this.k8sCoreApi.deleteNamespacedPod({ name: podName, namespace });
+      await this.k8sCoreApi.deleteNamespacedPod({
+        name: podName,
+        namespace,
+        body: {
+          apiVersion: "v1",
+          kind: "DeleteOptions",
+          preconditions: { uid: podUid },
+        },
+      });
       console.log(
         JSON.stringify({
           msg: "Deleted stuck pod",
           sts: key,
           pod: podName,
+          uid: podUid,
         })
       );
       // Reset stuck tracking — the rollout has been nudged.
       this.stuckMap.delete(key);
     } catch (err) {
+      // A 404 (pod already gone) or 409 (UID mismatch — pod was replaced
+      // between list and delete) are both harmless: the rollout was already
+      // nudged or the pod we observed no longer exists. Log and let the next
+      // poll cycle re-evaluate.
+      const status = (err as { statusCode?: number; body?: { code?: number } })
+        ?.statusCode ?? (err as { body?: { code?: number } })?.body?.code;
+      if (status === 404 || status === 409) {
+        console.log(
+          JSON.stringify({
+            msg: "Pod delete skipped (already gone or replaced)",
+            sts: key,
+            pod: podName,
+            uid: podUid,
+            httpStatus: status,
+          })
+        );
+        return;
+      }
       console.error(
         JSON.stringify({
           msg: "Failed to delete pod",
           sts: key,
           pod: podName,
+          uid: podUid,
           error: String(err),
         })
       );
