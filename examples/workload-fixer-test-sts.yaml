@@ -29,18 +29,13 @@
 #          -p='[{"op":"replace","path":"/spec/template/spec/initContainers/0/args","value":["1"]}]'
 #
 # The annotation "workload-fixer/fix-stuck-rollout: 'true'" opts this
-# StatefulSet into automatic remediation.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: workload-fixer-test
+# StatefulSet into automatic remediation.  Deploy it into whatever
+# namespace the workload-fixer chart is watching.
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: workload-fixer-test
-  namespace: workload-fixer-test
   annotations:
     workload-fixer/fix-stuck-rollout: "true"
 spec:
@@ -84,7 +79,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: workload-fixer-test
-  namespace: workload-fixer-test
 spec:
   clusterIP: None
   selector:
