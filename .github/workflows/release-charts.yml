@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - "entra-app-exporter-v*"
+      - "workload-fixer-v*"
 
 permissions: {}
 
@@ -40,7 +41,7 @@ jobs:
           version: v3.14.0
 
       - name: Run ct lint
-        run: ct lint --chart-dirs charts --charts charts/entra-app-exporter
+        run: ct lint --chart-dirs charts --charts charts/entra-app-exporter --charts charts/workload-fixer
 
   release-charts:
     name: Package and release charts

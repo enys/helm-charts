@@ -1,0 +1,6 @@
+## CI test values — minimal config for ct install
+watcher:
+  namespace: ""
+  stuckThresholdSeconds: 60
+  pollIntervalSeconds: 10
+  port: 9090

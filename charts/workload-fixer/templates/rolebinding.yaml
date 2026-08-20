@@ -1,0 +1,17 @@
+{{- if not .Values.rbac.clusterScoped }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "workload-fixer.fullname" . }}
+  namespace: {{ include "workload-fixer.watchNamespace" . }}
+  labels:
+    {{- include "workload-fixer.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "workload-fixer.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "workload-fixer.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
