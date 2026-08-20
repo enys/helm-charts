@@ -3,15 +3,18 @@ name: Init release
 on:
   workflow_dispatch:
     inputs:
+      chart_name:
+        description: "Chart to release"
+        required: true
+        default: "entra-app-exporter"
+        type: choice
+        options:
+          - entra-app-exporter
+          - workload-fixer
       target_branch:
         description: "Branch to open the PR into"
         required: false
         default: "main"
-        type: string
-      compare_ref:
-        description: "Optional baseline ref/sha/tag for change detection (defaults to latest v* tag)"
-        required: false
-        default: ""
         type: string
       chart_version:
         description: "Chart version to set (e.g. 0.2.0)"
@@ -46,11 +49,6 @@ jobs:
         with:
           version: v3.21.3
 
-      - name: Set up chart-testing
-        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
-        with:
-          version: v3.14.0
-
       - name: Validate versions
         env:
           CHART_VERSION: ${{ inputs.chart_version }}
@@ -69,59 +67,29 @@ jobs:
             exit 1
           fi
 
-      - name: Detect changed chart with ct
-        id: detect-chart
+      - name: Validate selected chart
+        id: selected-chart
         env:
-          TARGET_BRANCH: ${{ inputs.target_branch }}
-          COMPARE_REF: ${{ inputs.compare_ref }}
+          CHART_NAME: ${{ inputs.chart_name }}
         run: |
           set -euo pipefail
 
-          git fetch origin --tags --force
-          git fetch origin "${TARGET_BRANCH}"
-
-          compare_ref="${COMPARE_REF}"
-          if [ -z "${compare_ref}" ]; then
-            compare_ref="$(git tag --list 'v*' --sort=-version:refname | head -n 1 || true)"
-            if [ -z "${compare_ref}" ]; then
-              echo "::error::No baseline tag found (v*). Provide compare_ref explicitly."
-              exit 1
-            fi
-          fi
-
-          if ! git rev-parse --verify "${compare_ref}^{commit}" >/dev/null 2>&1; then
-            echo "::error::compare_ref '${compare_ref}' does not resolve to a commit."
+          chart_dir="charts/${CHART_NAME}"
+          if [ ! -f "${chart_dir}/Chart.yaml" ]; then
+            echo "::error::Chart '${CHART_NAME}' does not exist or has no Chart.yaml."
             exit 1
           fi
 
-          compare_branch="ct-compare-$(date +%s)"
-          git branch "${compare_branch}" "${compare_ref}^{commit}"
-          changed_charts="$(ct list-changed --chart-dirs charts --target-branch "${compare_branch}" | sed '/^\s*$/d' || true)"
-          chart_count="$(echo "${changed_charts}" | sed '/^\s*$/d' | wc -l | tr -d ' ')"
-
-          if [ "${chart_count}" = "0" ]; then
-            echo "::error::No changed chart detected by ct against baseline ${compare_ref}."
-            exit 1
-          fi
-
-          if [ "${chart_count}" != "1" ]; then
-            echo "::error::Expected exactly one changed chart, found ${chart_count}:"
-            echo "${changed_charts}"
-            exit 1
-          fi
-
-          chart_dir="$(echo "${changed_charts}" | head -n 1)"
-          chart_name="$(basename "${chart_dir}")"
-          app_package_json="apps/${chart_name}/package.json"
+          app_package_json="apps/${CHART_NAME}/package.json"
 
           echo "chart_dir=${chart_dir}" >> "${GITHUB_OUTPUT}"
-          echo "chart_name=${chart_name}" >> "${GITHUB_OUTPUT}"
+          echo "chart_name=${CHART_NAME}" >> "${GITHUB_OUTPUT}"
           echo "app_package_json=${app_package_json}" >> "${GITHUB_OUTPUT}"
 
       - name: Update versions
         env:
-          CHART_DIR: ${{ steps.detect-chart.outputs.chart_dir }}
-          APP_PACKAGE_JSON: ${{ steps.detect-chart.outputs.app_package_json }}
+          CHART_DIR: ${{ steps.selected-chart.outputs.chart_dir }}
+          APP_PACKAGE_JSON: ${{ steps.selected-chart.outputs.app_package_json }}
           CHART_VERSION: ${{ inputs.chart_version }}
           APP_VERSION: ${{ inputs.app_version }}
         run: |
@@ -152,9 +120,9 @@ jobs:
           TARGET_BRANCH: ${{ inputs.target_branch }}
           CHART_VERSION: ${{ inputs.chart_version }}
           APP_VERSION: ${{ inputs.app_version }}
-          CHART_DIR: ${{ steps.detect-chart.outputs.chart_dir }}
-          CHART_NAME: ${{ steps.detect-chart.outputs.chart_name }}
-          APP_PACKAGE_JSON: ${{ steps.detect-chart.outputs.app_package_json }}
+          CHART_DIR: ${{ steps.selected-chart.outputs.chart_dir }}
+          CHART_NAME: ${{ steps.selected-chart.outputs.chart_name }}
+          APP_PACKAGE_JSON: ${{ steps.selected-chart.outputs.app_package_json }}
         run: |
           set -euo pipefail
 
