@@ -193,21 +193,25 @@ export class WorkloadWatcher {
 
     let podList: k8s.V1Pod[];
     try {
+      // Build the label selector from the StatefulSet's own spec.selector.matchLabels,
+      // which is the canonical set Kubernetes uses to claim pods for this STS.
+      const matchLabels = sts.spec?.selector?.matchLabels ?? {};
+      const labelSelector = Object.entries(matchLabels)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(",");
+
       const resp = await this.k8sCoreApi.listNamespacedPod({
         namespace,
-        labelSelector: `app.kubernetes.io/name=${stsName},app=${stsName}`,
+        ...(labelSelector ? { labelSelector } : {}),
       });
-      podList = resp.items;
 
-      // Fallback: list by statefulset owner reference if label selector returned nothing.
-      if (podList.length === 0) {
-        const allPodsResp = await this.k8sCoreApi.listNamespacedPod({ namespace });
-        podList = allPodsResp.items.filter((p) =>
-          p.metadata?.ownerReferences?.some(
-            (ref) => ref.kind === "StatefulSet" && ref.name === stsName
-          )
-        );
-      }
+      // Always filter by owner reference: the label selector alone may match pods
+      // that belong to a different controller (e.g. a Deployment sharing labels).
+      podList = resp.items.filter((p) =>
+        p.metadata?.ownerReferences?.some(
+          (ref) => ref.kind === "StatefulSet" && ref.name === stsName
+        )
+      );
     } catch (err) {
       console.error(
         JSON.stringify({ msg: "Failed to list pods", sts: key, error: String(err) })
