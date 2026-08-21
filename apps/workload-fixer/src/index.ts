@@ -1,4 +1,5 @@
 import express from "express";
+import { register } from "prom-client";
 import { WorkloadWatcher } from "./watcher";
 import { WatcherConfig } from "./types";
 
@@ -74,6 +75,17 @@ async function main(): Promise<void> {
     });
 
     next();
+  });
+
+  app.get("/metrics", async (_req, res) => {
+    try {
+      res.set("Content-Type", register.contentType);
+      res.end(await register.metrics());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Error rendering metrics:", message);
+      res.status(500).end("Internal server error");
+    }
   });
 
   app.get("/healthz", (_req, res) => {

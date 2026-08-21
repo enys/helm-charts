@@ -58,6 +58,16 @@ securityContext:
       - ALL
   readOnlyRootFilesystem: true
 
+## @section Service parameters
+
+service:
+  ## @param service.type Kubernetes service type
+  type: ClusterIP
+  ## @param service.port Service port for the metrics endpoint
+  port: 9090
+  ## @param service.annotations Annotations to add to the service
+  annotations: {}
+
 ## @section Watcher configuration
 
 watcher:
@@ -121,3 +131,105 @@ tolerations: []
 
 ## @param affinity Affinity rules for pod scheduling
 affinity: {}
+
+## @section Prometheus ServiceMonitor
+
+serviceMonitor:
+  ## @param serviceMonitor.enabled Create a Prometheus ServiceMonitor resource
+  enabled: true
+  ## @param serviceMonitor.namespace Namespace in which the ServiceMonitor is created. Defaults to the release namespace.
+  namespace: ""
+  ## @param serviceMonitor.targetNamespace Namespace where the Service to be scraped lives. Defaults to the release namespace.
+  ## Set this when the ServiceMonitor is created in a different namespace than the release (e.g., a monitoring namespace).
+  targetNamespace: ""
+  ## @param serviceMonitor.interval Prometheus scrape interval
+  interval: "60s"
+  ## @param serviceMonitor.scrapeTimeout Prometheus scrape timeout
+  scrapeTimeout: "30s"
+  ## @param serviceMonitor.path HTTP path used by Prometheus to scrape metrics
+  path: /metrics
+  ## @param serviceMonitor.port Name of the service port to scrape
+  port: http
+  ## @param serviceMonitor.scheme HTTP scheme used for scraping
+  scheme: http
+  ## @param serviceMonitor.labels Additional labels for the ServiceMonitor
+  labels:
+    release: kube-prometheus-stack
+  ## @param serviceMonitor.annotations Additional annotations for the ServiceMonitor
+  annotations: {}
+  ## @param serviceMonitor.honorLabels Honor labels from the scraped target
+  honorLabels: false
+
+## @section Prometheus alerting rules
+
+alerts:
+  ## @param alerts.enabled Create a PrometheusRule resource with alerts for controller health and stuck rollouts
+  enabled: false
+  ## @param alerts.namespace Namespace in which the PrometheusRule is created. Defaults to the release namespace.
+  namespace: ""
+  ## @param alerts.groupName Alert group name in the PrometheusRule spec
+  groupName: workload-fixer.rules
+  ## @param alerts.labels Additional labels for the PrometheusRule
+  labels:
+    release: kube-prometheus-stack
+  ## @param alerts.annotations Additional annotations for the PrometheusRule
+  annotations: {}
+  rules:
+    stalePoll:
+      ## @param alerts.rules.stalePoll.enabled Enable stale poll alert
+      enabled: true
+      ## @param alerts.rules.stalePoll.maxAgeSeconds Maximum allowed age of the last successful poll timestamp
+      maxAgeSeconds: 300
+      ## @param alerts.rules.stalePoll.for Prometheus 'for' duration for stale poll alert
+      for: 10m
+      ## @param alerts.rules.stalePoll.severity Severity label value
+      severity: warning
+    pollErrors:
+      ## @param alerts.rules.pollErrors.enabled Enable poll errors alert
+      enabled: true
+      ## @param alerts.rules.pollErrors.lookbackWindow Lookback window used by increase() on poll error counter
+      lookbackWindow: 15m
+      ## @param alerts.rules.pollErrors.for Prometheus 'for' duration for poll errors alert
+      for: 5m
+      ## @param alerts.rules.pollErrors.severity Severity label value
+      severity: warning
+    rolloutStuck:
+      ## @param alerts.rules.rolloutStuck.enabled Enable stuck rollout alert
+      enabled: true
+      ## @param alerts.rules.rolloutStuck.thresholdSeconds Threshold in seconds a rollout may remain stuck before alerting
+      thresholdSeconds: 600
+      ## @param alerts.rules.rolloutStuck.for Prometheus 'for' duration for stuck rollout alert
+      for: 5m
+      ## @param alerts.rules.rolloutStuck.severity Severity label value
+      severity: warning
+    podsDeleted:
+      ## @param alerts.rules.podsDeleted.enabled Enable repeated pod deletion alert
+      enabled: true
+      ## @param alerts.rules.podsDeleted.threshold Number of pod deletions within the lookback window that triggers this alert
+      threshold: 3
+      ## @param alerts.rules.podsDeleted.lookbackWindow Lookback window used by increase() on the pods deleted counter
+      lookbackWindow: 30m
+      ## @param alerts.rules.podsDeleted.for Prometheus 'for' duration for repeated pod deletion alert
+      for: 5m
+      ## @param alerts.rules.podsDeleted.severity Severity label value
+      severity: warning
+
+## @section Network Policy
+
+networkPolicy:
+  ## @param networkPolicy.enabled Enable a NetworkPolicy for the controller pods
+  enabled: false
+
+## @section Grafana dashboard
+
+grafana:
+  dashboard:
+    ## @param grafana.dashboard.enabled Create a ConfigMap containing the Grafana dashboard JSON, picked up by the Grafana sidecar
+    enabled: false
+    ## @param grafana.dashboard.namespace Namespace in which the ConfigMap is created. Defaults to the release namespace.
+    namespace: ""
+    ## @param grafana.dashboard.labels Additional labels for the ConfigMap. The grafana_dashboard label is added automatically.
+    labels:
+      grafana_dashboard: "1"
+    ## @param grafana.dashboard.annotations Additional annotations for the ConfigMap
+    annotations: {}
