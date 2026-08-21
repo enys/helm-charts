@@ -1,0 +1,60 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "workload-fixer.fullname" . }}-rules
+  namespace: {{ default .Release.Namespace .Values.alerts.namespace }}
+  labels:
+    {{- include "workload-fixer.labels" . | nindent 4 }}
+    {{- with .Values.alerts.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.alerts.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  groups:
+    - name: {{ .Values.alerts.groupName | quote }}
+      rules:
+        {{- if .Values.alerts.rules.stalePoll.enabled }}
+        - alert: WorkloadFixerStalePoll
+          expr: time() - workload_fixer_last_poll_timestamp_seconds > {{ .Values.alerts.rules.stalePoll.maxAgeSeconds }}
+          for: {{ .Values.alerts.rules.stalePoll.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.stalePoll.severity | quote }}
+          annotations:
+            summary: "Workload Fixer poll loop appears stale"
+            description: {{`"The last successful poll of the Kubernetes API is older than the configured threshold.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.pollErrors.enabled }}
+        - alert: WorkloadFixerPollErrors
+          expr: increase(workload_fixer_poll_errors_total[{{ .Values.alerts.rules.pollErrors.lookbackWindow }}]) > 0
+          for: {{ .Values.alerts.rules.pollErrors.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.pollErrors.severity | quote }}
+          annotations:
+            summary: "Workload Fixer poll errors detected"
+            description: {{`"The controller recorded one or more errors polling the Kubernetes API in the lookback window.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.rolloutStuck.enabled }}
+        - alert: WorkloadFixerRolloutStuck
+          expr: workload_fixer_stuck_duration_seconds > {{ .Values.alerts.rules.rolloutStuck.thresholdSeconds }}
+          for: {{ .Values.alerts.rules.rolloutStuck.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.rolloutStuck.severity | quote }}
+          annotations:
+            summary: "StatefulSet rollout has been stuck for an extended period"
+            description: {{`"StatefulSet {{ $labels.statefulset }} in namespace {{ $labels.namespace }} has been stuck for longer than expected.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+        {{- if .Values.alerts.rules.podsDeleted.enabled }}
+        - alert: WorkloadFixerPodsDeleted
+          expr: increase(workload_fixer_pods_deleted_total[{{ .Values.alerts.rules.podsDeleted.lookbackWindow }}]) > {{ .Values.alerts.rules.podsDeleted.threshold }}
+          for: {{ .Values.alerts.rules.podsDeleted.for }}
+          labels:
+            severity: {{ .Values.alerts.rules.podsDeleted.severity | quote }}
+          annotations:
+            summary: "Workload Fixer is repeatedly deleting pods"
+            description: {{`"The controller has deleted more than `}}{{ .Values.alerts.rules.podsDeleted.threshold }}{{` pods for {{ $labels.statefulset }} in namespace {{ $labels.namespace }} within the lookback window, which may indicate a persistently broken rollout.\n  VALUE = {{ $value }}"`}}
+        {{- end }}
+{{- end }}

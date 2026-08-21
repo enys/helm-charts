@@ -13,3 +13,12 @@ Configuration:
   Poll interval   : {{ .Values.watcher.pollIntervalSeconds }}s
   Watch namespace : {{ include "workload-fixer.watchNamespace" . }}
   RBAC scope      : {{ if .Values.rbac.clusterScoped }}cluster-wide (ClusterRole){{ else }}namespaced (Role){{ end }}
+
+Prometheus metrics are exposed at:
+  http://{{ include "workload-fixer.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/metrics
+{{- if .Values.serviceMonitor.enabled }}
+A ServiceMonitor has been created for kube-prometheus-stack discovery.
+{{- end }}
+{{- if .Values.grafana.dashboard.enabled }}
+A Grafana dashboard ConfigMap has been created (picked up by the Grafana sidecar).
+{{- end }}

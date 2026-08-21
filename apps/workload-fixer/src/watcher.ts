@@ -1,5 +1,13 @@
 import * as k8s from "@kubernetes/client-node";
 import { WatcherConfig, StsKey, StuckEntry, FIX_ANNOTATION } from "./types";
+import {
+  stuckRolloutsDetected,
+  rolloutsRecovered,
+  podsDeleted,
+  stuckDurationSeconds,
+  pollErrors,
+  lastPollTimestamp,
+} from "./metrics";
 
 export class WorkloadWatcher {
   private readonly config: WatcherConfig;
@@ -78,7 +86,9 @@ export class WorkloadWatcher {
       for (const sts of stsList) {
         await this.processSts(sts);
       }
+      lastPollTimestamp.set(Date.now() / 1000);
     } catch (err) {
+      pollErrors.inc();
       console.error(
         JSON.stringify({ msg: "Poll error", error: String(err) })
       );
@@ -125,17 +135,24 @@ export class WorkloadWatcher {
     if (!this.isOptedIn(sts)) {
       // Clear any stale stuck state if the annotation was removed.
       const key = this.stsKey(sts);
+      const namespace = sts.metadata?.namespace ?? "default";
+      const stsName = sts.metadata?.name ?? "";
       this.stuckMap.delete(key);
+      stuckDurationSeconds.remove(namespace, stsName);
       return;
     }
 
     const key = this.stsKey(sts);
+    const namespace = sts.metadata?.namespace ?? "default";
+    const stsName = sts.metadata?.name ?? "";
 
     if (!this.isRolloutStuck(sts)) {
       // Rollout is healthy — clear stuck state if we were tracking it.
       if (this.stuckMap.has(key)) {
         console.log(JSON.stringify({ msg: "Rollout recovered", sts: key }));
         this.stuckMap.delete(key);
+        rolloutsRecovered.inc({ namespace, statefulset: stsName });
+        stuckDurationSeconds.remove(namespace, stsName);
       }
       return;
     }
@@ -154,10 +171,13 @@ export class WorkloadWatcher {
           updateRevision,
         })
       );
+      stuckRolloutsDetected.inc({ namespace, statefulset: stsName });
+      stuckDurationSeconds.set({ namespace, statefulset: stsName }, 0);
       return;
     }
 
     const stuckForSeconds = (now.getTime() - existing.since.getTime()) / 1000;
+    stuckDurationSeconds.set({ namespace, statefulset: stsName }, stuckForSeconds);
     if (stuckForSeconds < this.config.stuckThresholdSeconds) {
       // Not yet stuck long enough.
       return;
@@ -250,8 +270,10 @@ export class WorkloadWatcher {
           uid: podUid,
         })
       );
+      podsDeleted.inc({ namespace, statefulset: stsName });
       // Reset stuck tracking — the rollout has been nudged.
       this.stuckMap.delete(key);
+      stuckDurationSeconds.remove(namespace, stsName);
     } catch (err) {
       // A 404 (pod already gone) or 409 (UID mismatch — pod was replaced
       // between list and delete) are both harmless: the rollout was already
