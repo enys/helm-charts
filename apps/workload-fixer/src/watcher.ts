@@ -135,7 +135,10 @@ export class WorkloadWatcher {
     if (!this.isOptedIn(sts)) {
       // Clear any stale stuck state if the annotation was removed.
       const key = this.stsKey(sts);
+      const namespace = sts.metadata?.namespace ?? "default";
+      const stsName = sts.metadata?.name ?? "";
       this.stuckMap.delete(key);
+      stuckDurationSeconds.remove(namespace, stsName);
       return;
     }
 
