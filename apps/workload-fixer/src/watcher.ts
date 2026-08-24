@@ -83,6 +83,16 @@ export class WorkloadWatcher {
         stsList = resp.items;
       }
 
+      const observedKeys = new Set(stsList.map((sts) => this.stsKey(sts)));
+      for (const key of this.stuckMap.keys()) {
+        if (!observedKeys.has(key)) {
+          this.stuckMap.delete(key);
+          const [staleNamespace = "default", staleStsName = ""] =
+            key.split("/", 2);
+          stuckDurationSeconds.remove(staleNamespace, staleStsName);
+        }
+      }
+
       for (const sts of stsList) {
         await this.processSts(sts);
       }
