@@ -1,6 +1,6 @@
 {
   "name": "workload-fixer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Kubernetes controller that detects and fixes stuck StatefulSet rolling updates by deleting blocked pods",
   "main": "dist/index.js",
   "scripts": {
@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "1.4.0",
-    "express": "4.22.2"
+    "express": "4.22.2",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "@types/express": "5.0.0",
