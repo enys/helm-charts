@@ -3,7 +3,7 @@ name: workload-fixer
 description: A Helm chart for the Workload Fixer — a Kubernetes controller that automatically fixes stuck StatefulSet rolling updates by deleting blocked pods.
 type: application
 version: 0.2.0
-appVersion: "0.1.0"
+appVersion: "0.2.0"
 keywords:
   - kubernetes
   - statefulset
