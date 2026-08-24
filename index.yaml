@@ -111,6 +111,32 @@ entries:
     version: 0.1.0
   workload-fixer:
   - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2026-08-24T13:33:14.312185197Z"
+    description: A Helm chart for the Workload Fixer — a Kubernetes controller that
+      automatically fixes stuck StatefulSet rolling updates by deleting blocked pods.
+    digest: f16ddaa69f5bd10488bf822e492af4104f04b1d6e2b00b8a0472e142f6153ada
+    home: https://github.com/enys/helm-charts
+    keywords:
+    - kubernetes
+    - statefulset
+    - controller
+    - operator
+    - rollout
+    - fix
+    - prometheus
+    - exporter
+    - metrics
+    maintainers:
+    - name: enys
+    name: workload-fixer
+    sources:
+    - https://github.com/enys/helm-charts
+    type: application
+    urls:
+    - https://github.com/enys/helm-charts/releases/download/workload-fixer-0.2.0/workload-fixer-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 0.1.0
     created: "2026-08-20T20:13:28.821218816Z"
     description: A Helm chart for the Workload Fixer — a Kubernetes controller that
@@ -133,4 +159,4 @@ entries:
     urls:
     - https://github.com/enys/helm-charts/releases/download/workload-fixer-0.1.1/workload-fixer-0.1.1.tgz
     version: 0.1.1
-generated: "2026-08-20T20:13:28.82126196Z"
+generated: "2026-08-24T13:33:14.312204246Z"
