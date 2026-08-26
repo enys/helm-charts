@@ -92,10 +92,10 @@ rbac:
 resources:
   limits:
     cpu: 100m
-    memory: 64Mi
+    memory: 192Mi
   requests:
     cpu: 20m
-    memory: 32Mi
+    memory: 96Mi
 
 ## @section Liveness and readiness probes
 
