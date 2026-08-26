@@ -3,6 +3,33 @@ entries:
   entra-app-exporter:
   - apiVersion: v2
     appVersion: 1.0.1
+    created: "2026-08-26T12:51:01.547344464Z"
+    description: A Helm chart for the Entra App Exporter — a Prometheus exporter that
+      surfaces Azure Entra (formerly Azure AD) application registration details, including
+      client secret and certificate expiration metrics.
+    digest: 6ab46cd7dbf58adf5a79bc4d9a41bcd236684263797636f702dcefc4d1c80a76
+    home: https://github.com/enys/helm-charts
+    icon: https://raw.githubusercontent.com/enys/helm-charts/main/charts/entra-app-exporter/icon.png
+    keywords:
+    - azure
+    - entra
+    - azure-ad
+    - prometheus
+    - exporter
+    - metrics
+    - secrets
+    - certificates
+    maintainers:
+    - name: enys
+    name: entra-app-exporter
+    sources:
+    - https://github.com/enys/helm-charts
+    type: application
+    urls:
+    - https://github.com/enys/helm-charts/releases/download/entra-app-exporter-0.1.4/entra-app-exporter-0.1.4.tgz
+    version: 0.1.4
+  - apiVersion: v2
+    appVersion: 1.0.1
     created: "2026-08-03T11:46:50.164904671Z"
     description: A Helm chart for the Entra App Exporter — a Prometheus exporter that
       surfaces Azure Entra (formerly Azure AD) application registration details, including
@@ -112,6 +139,32 @@ entries:
   workload-fixer:
   - apiVersion: v2
     appVersion: 0.2.0
+    created: "2026-08-26T12:51:01.795711756Z"
+    description: A Helm chart for the Workload Fixer — a Kubernetes controller that
+      automatically fixes stuck StatefulSet rolling updates by deleting blocked pods.
+    digest: 766d2fb72e8a971b34f78a21638d20c4da24d6e51a19e9483ab69c684a441ac6
+    home: https://github.com/enys/helm-charts
+    keywords:
+    - kubernetes
+    - statefulset
+    - controller
+    - operator
+    - rollout
+    - fix
+    - prometheus
+    - exporter
+    - metrics
+    maintainers:
+    - name: enys
+    name: workload-fixer
+    sources:
+    - https://github.com/enys/helm-charts
+    type: application
+    urls:
+    - https://github.com/enys/helm-charts/releases/download/workload-fixer-0.2.2/workload-fixer-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
+    appVersion: 0.2.0
     created: "2026-08-26T08:09:05.616003405Z"
     description: A Helm chart for the Workload Fixer — a Kubernetes controller that
       automatically fixes stuck StatefulSet rolling updates by deleting blocked pods.
@@ -185,4 +238,4 @@ entries:
     urls:
     - https://github.com/enys/helm-charts/releases/download/workload-fixer-0.1.1/workload-fixer-0.1.1.tgz
     version: 0.1.1
-generated: "2026-08-26T08:09:05.616030275Z"
+generated: "2026-08-26T12:51:01.795749657Z"
