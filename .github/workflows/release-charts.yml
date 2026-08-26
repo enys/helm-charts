@@ -68,3 +68,4 @@ jobs:
           charts_dir: charts
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_RELEASE_NOTES_FILE: release-notes.md
