@@ -78,6 +78,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          tmp_files=()
+          trap '(( ${#tmp_files[@]} )) && rm -f "${tmp_files[@]}"' EXIT
+
           IFS=',' read -r -a charts <<< "${CHANGED_CHARTS}"
           for chart_dir in "${charts[@]}"; do
             [ -n "${chart_dir}" ] || continue
@@ -87,8 +90,7 @@ jobs:
             release_tag="${chart_name}-${chart_version}"
             release_notes="$(mktemp)"
             generated_notes="$(mktemp)"
-            trap 'rm -f "${release_notes}" "${generated_notes}"' EXIT
-
+            tmp_files+=("${release_notes}" "${generated_notes}")
             gh api \
               --method POST \
               "/repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
