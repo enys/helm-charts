@@ -100,7 +100,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "count(workload_fixer_stuck_duration_seconds)",
+          "expr": "count(workload_fixer_stuck_duration_seconds) or vector(0)",
+          "instant": true,
           "legendFormat": "Stuck rollouts",
           "refId": "A"
         }
@@ -146,7 +147,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "max(workload_fixer_stuck_duration_seconds)",
+          "expr": "max(workload_fixer_stuck_duration_seconds) or vector(0)",
+          "instant": true,
           "legendFormat": "Max stuck duration",
           "refId": "A"
         }
