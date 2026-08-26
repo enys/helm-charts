@@ -63,9 +63,43 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Run chart-releaser
+        id: chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
           charts_dir: charts
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CR_RELEASE_NOTES_FILE: release-notes.md
+
+      - name: Add generated changelog to releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGED_CHARTS: ${{ steps.chart-releaser.outputs.changed_charts }}
+        run: |
+          set -euo pipefail
+
+          IFS=',' read -r -a charts <<< "${CHANGED_CHARTS}"
+          for chart_dir in "${charts[@]}"; do
+            [ -n "${chart_dir}" ] || continue
+
+            chart_name="$(awk '$1 == "name:" { print $2; exit }' "${chart_dir}/Chart.yaml")"
+            chart_version="$(awk '$1 == "version:" { print $2; exit }' "${chart_dir}/Chart.yaml")"
+            release_tag="${chart_name}-${chart_version}"
+            release_notes="$(mktemp)"
+            generated_notes="$(mktemp)"
+            trap 'rm -f "${release_notes}" "${generated_notes}"' EXIT
+
+            gh api \
+              --method POST \
+              "/repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+              -f tag_name="${release_tag}" \
+              -f target_commitish="${GITHUB_SHA}" \
+              --jq '.body' > "${generated_notes}"
+
+            cat "${chart_dir}/release-notes.md" > "${release_notes}"
+            printf '\n\n## Changelog\n\n' >> "${release_notes}"
+            cat "${generated_notes}" >> "${release_notes}"
+            gh release edit "${release_tag}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --notes-file "${release_notes}"
+          done
