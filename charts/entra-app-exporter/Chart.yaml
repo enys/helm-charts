@@ -3,7 +3,7 @@ name: entra-app-exporter
 description: A Helm chart for the Entra App Exporter — a Prometheus exporter that surfaces Azure Entra (formerly Azure AD) application registration details, including client secret and certificate expiration metrics.
 type: application
 version: 0.1.4
-appVersion: "1.0.1"
+appVersion: "1.0.2"
 keywords:
   - azure
   - entra
