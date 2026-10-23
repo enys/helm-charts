@@ -143,7 +143,7 @@ jobs:
       - name: Set up chart-testing
         uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
         with:
-          version: v3.14.0
+          version: v3.15.0
 
       - name: Run ct lint
         run: ct lint --chart-dirs charts --charts charts/entra-app-exporter
@@ -343,7 +343,7 @@ jobs:
       - name: Set up chart-testing
         uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
         with:
-          version: v3.14.0
+          version: v3.15.0
 
       - name: Run ct lint
         run: ct lint --chart-dirs charts --charts charts/workload-fixer
