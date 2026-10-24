@@ -6,7 +6,8 @@ A collection of Helm charts for Kubernetes.
 
 | Chart | Description | Version |
 |-------|-------------|---------|
-| [entra-app-exporter](charts/entra-app-exporter) | Prometheus exporter for Azure Entra app registration secrets and certificate expiration | 0.1.0 |
+| [entra-app-exporter](charts/entra-app-exporter) | Prometheus exporter for Azure Entra app registration secrets and certificate expiration | 0.1.5 |
+| [workload-fixer](charts/workload-fixer) | Kubernetes controller that fixes stuck StatefulSet rolling updates by deleting blocked pods | 0.2.3 |
 
 ## Usage
 
