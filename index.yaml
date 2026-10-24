@@ -2,6 +2,33 @@ apiVersion: v1
 entries:
   entra-app-exporter:
   - apiVersion: v2
+    appVersion: 1.0.2
+    created: "2026-10-24T12:45:41.384920629Z"
+    description: A Helm chart for the Entra App Exporter — a Prometheus exporter that
+      surfaces Azure Entra (formerly Azure AD) application registration details, including
+      client secret and certificate expiration metrics.
+    digest: e6ff91423186b2acfc264c46ac84f25687af72bf009f1beca72d99dec026643b
+    home: https://github.com/enys/helm-charts
+    icon: https://raw.githubusercontent.com/enys/helm-charts/main/charts/entra-app-exporter/icon.png
+    keywords:
+    - azure
+    - entra
+    - azure-ad
+    - prometheus
+    - exporter
+    - metrics
+    - secrets
+    - certificates
+    maintainers:
+    - name: enys
+    name: entra-app-exporter
+    sources:
+    - https://github.com/enys/helm-charts
+    type: application
+    urls:
+    - https://github.com/enys/helm-charts/releases/download/entra-app-exporter-0.1.5/entra-app-exporter-0.1.5.tgz
+    version: 0.1.5
+  - apiVersion: v2
     appVersion: 1.0.1
     created: "2026-08-26T12:51:01.547344464Z"
     description: A Helm chart for the Entra App Exporter — a Prometheus exporter that
@@ -264,4 +291,4 @@ entries:
     urls:
     - https://github.com/enys/helm-charts/releases/download/workload-fixer-0.1.1/workload-fixer-0.1.1.tgz
     version: 0.1.1
-generated: "2026-10-23T19:29:15.009335908Z"
+generated: "2026-10-24T12:45:41.384960584Z"
